@@ -1,0 +1,35 @@
+[Unit]
+Description=Our World of Pixels Node server
+After=owop-builder.service
+Requires=owop-builder.service
+StartLimitIntervalSec=20s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+SyslogIdentifier=%N
+Restart=on-failure
+
+WorkingDirectory=/cwd
+RuntimeDirectory=%N-root
+RootDirectory=%t/%N-root
+ExecStart=/result/bin/owopserver
+
+# home dir root + unit name@instance without extension + "-cwd"
+BindPaths=/var/run/postgresql %h/%N-cwd:/cwd
+BindReadOnlyPaths=/nix/store /etc/resolv.conf /etc/static/ssl:/etc/ssl /etc/static/pki:/etc/pki %h/%N-result:/result
+ProtectSystem=strict
+PrivateUsers=true
+NoExecPaths=/
+ExecPaths=/nix/store
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+DevicePolicy=closed
+
+[Install]
+WantedBy=default.target

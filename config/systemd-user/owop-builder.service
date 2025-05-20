@@ -1,0 +1,12 @@
+[Unit]
+Description=OWOP server builder
+
+[Service]
+Type=oneshot
+SyslogIdentifier=%N
+
+WorkingDirectory=%h
+ExecStart=/run/current-system/sw/bin/nix-build %h/owopserver -o %h/owop-result
+
+[Install]
+WantedBy=default.target

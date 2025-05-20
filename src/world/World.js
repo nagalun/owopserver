@@ -1,5 +1,5 @@
 import { Region } from "../region/Region.js"
-import { Property } from "../Property.js"
+import { Property } from "../util/Property.js"
 
 let textEncoder = new TextEncoder()
 
