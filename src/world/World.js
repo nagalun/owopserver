@@ -34,9 +34,9 @@ export class World {
 			this.allowGlobalMods = new Property('allowGlobalMods');
 			this.dataModified = new Property('dataModified');
 		} else {
-			data = JSON.parse(data)
+			data = JSON.parse(data);
 			for (let key in data.properties) {
-				this[key].values = data.properties[key]
+				this[key].value = data.properties[key];
 			}
 			this.dataModified = false
 		}
