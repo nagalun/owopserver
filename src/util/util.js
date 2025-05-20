@@ -31,31 +31,3 @@ export function getIpFromHeader(string) {
   let ips = string.split(",")
   return ips[ips.length - 1]
 }
-
-export const RANK = {
-	NONE: 0,
-	USER: 1,
-	MODERATOR: 2,
-	ADMIN: 3,
-}
-
-export const DEFAULT_PROPS = {
-	"restricted": false,
-	"pass": null,
-	"modpass": null,
-	"pquota": null,
-	"motd": null,
-	"bgcolor": 0xffffff,
-	"doubleModPquota": true,
-	"pastingAllowed": true,
-	"maxPlayers": 255,
-	"maxTpDistance": 12000000,
-	"modPrefix": "(M)",
-	"simpleMods": false,
-	"allowGlobalMods": true,
-	"dataModified": false,
-	"stickyImage": null,
-	"stickyImageSize": "256x256",
-	"stickyImageOpacity": 100,
-	"adminpass": null,
-}
