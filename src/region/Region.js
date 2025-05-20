@@ -36,7 +36,7 @@ export class Region {
     this.loaded = true
     this.loadPromise = null
     if (!data) {
-      let color = this.world.bgcolor
+      let color = this.world.bgcolor.value
       this.pixels = Buffer.alloc(196608, new Uint8Array([color >> 16, (color & 0x00ff00) >> 8, color & 0x0000ff]))
       this.protection = Buffer.alloc(256)
       return

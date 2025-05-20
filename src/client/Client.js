@@ -95,11 +95,11 @@ export class Client {
   getNick() {
     if (this.nick) {
       if (this.rank === 3) return this.nick
-      if (this.rank === 2) return `${this.world.modPrefix} ${this.nick}`
+      if (this.rank === 2) return `${this.world.modPrefix.value} ${this.nick}`
       return `[${this.uid}] ${this.nick}`
     }
     if (this.rank === 3) return `(A) ${this.uid}`
-    if (this.rank === 2) return `${this.world.modPrefix} ${this.uid}`
+    if (this.rank === 2) return `${this.world.modPrefix.value} ${this.uid}`
     return this.uid.toString()
   }
 
@@ -128,7 +128,7 @@ export class Client {
       this.ws.unsubscribe(this.server.adminTopic)
     }
     let pquota
-    if (this.world.pquota) {
+    if (this.world.pquota.value) {
       pquota = this.world.pquota
     } else {
       pquota = this.server.config.defaultPquota
@@ -140,7 +140,7 @@ export class Client {
         break
       }
       case 2: {
-        if (this.world.doubleModPquota) pquota[1] = Math.ceil(pquota[1] / 2)
+        if (this.world.doubleModPquota.value) pquota[1] = Math.ceil(pquota[1] / 2)
         break
       }
       case 3: {
@@ -299,7 +299,7 @@ export class Client {
       case 776: {
         if (this.rank < 2) return
         if (this.rank < 3) {
-          if (!this.world.pastingAllowed) {
+          if (!this.world.pastingAllowed.value) {
             if (!this.noPasteTold) {
               this.noPasteTold = true
               this.sendString("Pasting is disabled in this world, sorry!")
@@ -339,7 +339,7 @@ export class Client {
       case 13: {
         if (this.rank < 2) return
         if (this.rank < 3) {
-          if (this.world.simpleMods) return
+          if (this.world.simpleMods.value) return
           if (!this.pquota.canSpend()) return
         }
         let chunkX = message.readInt32LE(0)
@@ -375,7 +375,7 @@ export class Client {
       case 10: {
         if (this.rank < 2) return
         if (this.rank < 3) {
-          if (this.world.simpleMods) return
+          if (this.world.simpleMods.value) return
           if (!this.protectquota.canSpend()) return
         }
         let chunkX = message.readInt32LE(0)
@@ -426,7 +426,7 @@ export class Client {
         }
         this.tool = tool
         if (this.rank < 2) {
-          let maxTpDistance = this.world.maxTpDistance
+          let maxTpDistance = this.world.maxTpDistance.value
           if (Math.abs(x >> 4) > maxTpDistance || Math.abs(y >> 4) > maxTpDistance) {
             let distance = Math.sqrt(Math.pow(x - this.sentX, 2) + Math.pow(y - this.sentY, 2))
             if (distance > 10000) {

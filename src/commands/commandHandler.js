@@ -48,12 +48,12 @@ commands.set("pass", {
       return
     }
     if (client.rank >= 2) return
-    if (args === client.world.modpass) {
+    if (args === client.world.modpass.value) {
       client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`)
       client.setRank(2)
       return
-    } else if (client.rank < 1 && args === client.world.pass) {
-      if (client.world.restricted) {
+    } else if (client.rank < 1 && args === client.world.pass.value) {
+      if (client.world.restricted.value) {
         client.sendString("Can't unlock drawing, this world is restricted!")
         return
       }
@@ -108,7 +108,7 @@ commands.set("modlogin", {
       client.destroy()
       return
     }
-    if (!client.world.allowGlobalMods) {
+    if (!client.world.allowGlobalMods.value) {
       client.sendString("Sorry, but global moderators are disabled on this world.")
       return
     }
@@ -154,7 +154,7 @@ commands.set("tp", {
         let x = argsNumbers[0]
         let y = argsNumbers[1]
         if (client.rank < 3) {
-          if (Math.abs(x) > client.world.maxTpDistance || Math.abs(y) > client.world.maxTpDistance) {
+          if (Math.abs(x) > client.world.maxTpDistance.value || Math.abs(y) > client.world.maxTpDistance.value) {
             client.sendString("Out of range!")
             return
           }
@@ -168,7 +168,7 @@ commands.set("tp", {
         let x = argsNumbers[1]
         let y = argsNumbers[2]
         if (client.rank < 3) {
-          if (Math.abs(x) > client.world.maxTpDistance || Math.abs(y) > client.world.maxTpDistance) {
+          if (Math.abs(x) > client.world.maxTpDistance.value || Math.abs(y) > client.world.maxTpDistance.value) {
             client.sendString("Out of range!")
             return
           }
@@ -190,7 +190,7 @@ commands.set("setrank", {
   minRank: 2,
   hidden: false,
   eval: function (client, args, argsSplit) {
-    if (client.rank < 3 && client.world.simpleMods) {
+    if (client.rank < 3 && client.world.simpleMods.value) {
       client.sendString("No setrank for you")
       return
     }
@@ -260,7 +260,7 @@ commands.set("mute", {
   minRank: 2,
   hidden: false,
   eval: function (client, args, argsSplit) {
-    if (client.rank < 3 && client.world.simpleMods) {
+    if (client.rank < 3 && client.world.simpleMods.value) {
       client.sendString("No mute for you")
       return
     }
@@ -287,7 +287,7 @@ commands.set("restrict", {
   minRank: 2,
   hidden: false,
   eval: function (client, args, argsSplit) {
-    if (client.rank < 3 && client.world.simpleMods) {
+    if (client.rank < 3 && client.world.simpleMods.value) {
       client.sendString("No restrict for you")
       return
     }
@@ -325,7 +325,7 @@ commands.set("kick", {
   minRank: 2,
   hidden: false,
   eval: function (client, args, argsSplit) {
-    if (client.rank < 3 && client.world.simpleMods) {
+    if (client.rank < 3 && client.world.simpleMods.value) {
       client.sendString("No kick for you")
       return
     }
@@ -359,7 +359,7 @@ commands.set("setworldpass", {
   minRank: 2,
   hidden: false,
   eval: function (client, args, argsSplit) {
-    if (client.rank < 3 && client.world.simpleMods) {
+    if (client.rank < 3 && client.world.simpleMods.value) {
       client.sendString("No setworldpass for you")
       return
     }

@@ -53,9 +53,4 @@ export const DEFAULT_PROPS = {
 	"modPrefix": "(M)",
 	"simpleMods": false,
 	"allowGlobalMods": true,
-	"dataModified": false,
-	"stickyImage": null,
-	"stickyImageSize": "256x256",
-	"stickyImageOpacity": 100,
-	"adminpass": null,
 }

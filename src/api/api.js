@@ -128,7 +128,7 @@ async function getPlayerInfo(server, res, req) {
   })
   let world = await server.worlds.fetch("main")
   if (aborted) return
-  if (password !== world.modpass) {
+  if (password !== world.modpass.value) {
     res.cork(() => {
       res.end('{"type":"error","data":"no"}')
     })

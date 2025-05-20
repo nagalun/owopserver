@@ -18,27 +18,26 @@ export class World {
 		this.clients = new Map()
 		this.regions = new Map()
 
-		if (data === null) {
-			this.restricted = new Property('restricted');
-			this.pass = new Property('pass');
-			this.modpass = new Property('modpass');
-			this.pquota = new Property('pquota');
-			this.motd = new Property('motd');
-			this.bgcolor = new Property('bgcolor');
-			this.doubleModPquota = new Property('doubleModPquota');
-			this.pastingAllowed = new Property('pastingAllowed');
-			this.maxPlayers = new Property('maxPlayers');
-			this.maxTpDistance = new Property('maxTpDistance');
-			this.modPrefix = new Property('modPrefix');
-			this.simpleMods = new Property('simpleMods');
-			this.allowGlobalMods = new Property('allowGlobalMods');
-			this.dataModified = new Property('dataModified');
-		} else {
-			data = JSON.parse(data);
+		this.restricted = new Property('restricted');
+		this.pass = new Property('pass');
+		this.modpass = new Property('modpass');
+		this.pquota = new Property('pquota');
+		this.motd = new Property('motd');
+		this.bgcolor = new Property('bgcolor');
+		this.doubleModPquota = new Property('doubleModPquota');
+		this.pastingAllowed = new Property('pastingAllowed');
+		this.maxPlayers = new Property('maxPlayers');
+		this.maxTpDistance = new Property('maxTpDistance');
+		this.modPrefix = new Property('modPrefix');
+		this.simpleMods = new Property('simpleMods');
+		this.allowGlobalMods = new Property('allowGlobalMods');
+
+		this.dataModified = false
+		if (!!data) {
+			console.log(data);
 			for (let key in data.properties) {
 				this[key].value = data.properties[key];
 			}
-			this.dataModified = false
 		}
 
 		this.incrementingId = 1
@@ -114,11 +113,11 @@ export class World {
 		client.world = this
 		client.ws.subscribe(this.wsTopic)
 		client.setUid(id)
-		if (this.motd !== null) client.sendString(this.motd)
+		if (this.motd.value !== null) client.sendString(this.motd.value)
 		client.lastUpdate = this.server.currentTick
 		this.updateAllPlayers = true
-		if (this.restricted) return
-		if (this.pass) {
+		if (this.restricted.value) return
+		if (this.pass.value) {
 			client.sendString("[Server] This world has a password set. Use '/pass PASSWORD' to unlock drawing.")
 			return
 		}
