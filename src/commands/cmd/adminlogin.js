@@ -1,0 +1,34 @@
+import { RANK } from "../../util/util.js"
+
+export default {
+	data: {
+		name: "adminlogin",
+		minRank: RANK.NONE,
+		usage: 'adminlogin <password>',
+		hidden: true,
+	},
+	async execute(client, args){
+		if(client.rank >= RANK.ADMIN) return;
+		if(!args.length) return;
+		let password = args.join(" ");
+		if(password !== process.env.ADMINPASS) {
+			client.sendMessage({
+				sender: 'server',
+				data: {
+					action: 'invalidatePassword',
+					passwordType: 'adminlogin'
+				}
+			});
+			return client.destroy();
+		}
+		client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got admin`);
+		client.setRank(RANK.ADMIN);
+		client.sendMessage({
+			sender: 'server',
+			data: {
+				action: 'savePassword',
+				passwordType: 'adminlogin'
+			}
+		});
+	}
+}
