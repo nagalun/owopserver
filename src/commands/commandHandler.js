@@ -690,7 +690,7 @@ commands.set("getprop", {
     }
     if (args === "all") {
       for (let prop of worldProps) {
-        let value = client.world[prop]
+        let value = client.world[prop].value
         if (value === null) {
           client.sendString(`World property: '${prop}' has no value`)
         } else {
@@ -700,7 +700,7 @@ commands.set("getprop", {
       }
       return
     }
-    let value = client.world[args]
+    let value = client.world[args].value
     if (value === null) {
       client.sendString(`World property: '${args}' has no value`)
     } else {
