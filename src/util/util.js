@@ -35,11 +35,8 @@ export function getIpFromHeader(string) {
 export const RANK = {
 	NONE: 0,
 	USER: 1,
-	ARTIST: 2,
-	MODERATOR: 3,
-	ADMIN: 4,
-	DEVELOPER: 5,
-	OWNER: 6,
+	MODERATOR: 2,
+	ADMIN: 3,
 }
 
 export const DEFAULT_PROPS = {
