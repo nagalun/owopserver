@@ -34,6 +34,8 @@ export class World {
       this.dataModified = false
     } else {
       data = JSON.parse(data)
+      if (typeof data.properties === 'object') data = data.properties;
+      delete data.properties;
       for (let key in data) {
         this[key] = data[key]
       }
