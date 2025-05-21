@@ -29,7 +29,7 @@ with nixpkgs; stdenv.mkDerivation rec {
 	installPhase = ''
 		cat <<EOF > $out/bin/${name}
 #!/bin/sh
-${serverRuntime}/bin/node '$out/libexec/${name}/src/index.js';
+exec ${serverRuntime}/bin/node '$out/libexec/${name}/src/index.js';
 EOF
 		chmod a+x $out/bin/${name}
 	'';
