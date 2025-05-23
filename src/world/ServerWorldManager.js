@@ -54,6 +54,7 @@ export class ServerWorldManager {
     let world = worldObject.name
     this.map.delete(world)
     if (data) this.dbCache.set(world, data)
+    console.log(`world unloaded: ${world}`);
   }
 
   tickExpiration(tick) {

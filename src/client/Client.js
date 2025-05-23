@@ -105,9 +105,10 @@ export class Client {
 
   setUid(id) {
     this.uid = id
+    console.log(`new client! ${id} (${this.ip.ip}/${this.world.name})`);
     let buffer = Buffer.allocUnsafeSlow(5)
     buffer[0] = 0x00
-    buffer.writeUint32LE(id, 1)
+    buffer.writeUint32LE(id, 1);
     this.sendBuffer(buffer)
   }
 
@@ -150,6 +151,7 @@ export class Client {
     }
     this.setPquota(pquota[0], pquota[1])
     this.rank = rank
+    console.log(`got rank! ${this.uid} - rank ${rank} (${this.ip.ip}/${this.world.name})`);
     let buffer = Buffer.allocUnsafeSlow(2)
     buffer[0] = 0x04
     buffer[1] = rank

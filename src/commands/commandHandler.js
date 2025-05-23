@@ -15,6 +15,11 @@ export function handleCommand(client, message) {
   }
   let argsSplit = split.slice(1)
   command.eval(client, args, argsSplit)
+  if(!(cmdBase == "nick" || cmdBase == "pass" || cmdBase == "adminlogin")){
+    if(!(client.ws.origin == "Discord Bot" && (cmdBase == "tellraw" || cmdBase == "sayraw" || cmdBase == "whois"))){
+      console.log(`client ${client.uid} (${client.ip.ip}/${client.world.name}) executed: ${message}`);
+    }
+  }
 }
 
 let commands = new Map()
