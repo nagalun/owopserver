@@ -6,7 +6,7 @@ with nixpkgs; stdenv.mkDerivation rec {
 		url = ./.;
 	};
 
-	serverRuntime = pkgs.nodejs_18;
+	serverRuntime = pkgs.nodejs_22;
 	nativeBuildInputs = [
 		yarnConfigHook
 		#npmHooks.npmInstallHook
@@ -14,7 +14,7 @@ with nixpkgs; stdenv.mkDerivation rec {
 
 	yarnOfflineCache = fetchYarnDeps {
 		yarnLock = "${src}/yarn.lock";
-		hash = "sha256-TlNP8QaLcD/rQ8+U41gCBE45RDCU/ueNfrGrz+qgZz8=";
+		hash = "sha256-HTcBNVBRa7gRZFg5ALVM+jSn8+b3dn2VmfDDbdPRExY=";
 	};
 
 	# Grab the dependencies for running later
