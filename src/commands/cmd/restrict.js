@@ -9,7 +9,7 @@ export default {
 		description: 'Restricts drawing for all new users in this world.',
 		hidden: false,
 	}, async execute(client, args) {
-		if (client.rank < RANK.ADMIN && client.world.simpleMods) return client.sendMessage({
+		if (client.rank < RANK.ADMIN && client.world.simpleMods.value) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {

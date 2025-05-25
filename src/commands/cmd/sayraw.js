@@ -16,7 +16,7 @@ export default {
 				message: usageString(this)
 			}
 		});
-		client.world.broadcastMessage({
+		client.world.broadcastJSON({
 			sender: 'server',
 			type: 'raw',
 			data:{

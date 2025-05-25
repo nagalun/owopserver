@@ -25,6 +25,7 @@ export class Client {
 		this.id = id
 		this.ws = ws
 		this.ip = ws.ip
+		this.chatFormat = ws.format;
 
 		this.ip.addClient(this)
 
@@ -88,13 +89,13 @@ export class Client {
 		this.ws.send(buffer.buffer, true)
 	}
 
-	sendString(string) {
-		this.ws.send(textEncoder.encode(string).buffer, false)
-	}
+	// sendString(string) {
+	// 	this.ws.send(textEncoder.encode(string).buffer, false)
+	// }
 
 	// Send JSON message to client.
 	sendMessage(message){
-		// MESSAGE FORMAT:
+		// V2 MESSAGE FORMAT:
 		// {
 		// 	sender: 'server', // sender determines initial logic path, valid options are 'server' or 'player'.
 		// 	// type determines further logic branching, if sender is 'server', valid options are 'info', 'error', 'raw', 'whisper'.
@@ -113,17 +114,25 @@ export class Client {
 		// 		showLoading: false, // for 'updateStatus' action, whether or not to show the loading gif.
 		// 	}
 		// }
-		this.ws.send(JSON.stringify(message), false);
+		console.log(message);
+		if(this.chatFormat==="v2") this.ws.send(JSON.stringify(message), false);
+		else{
+			if(!!message.data&&!!message.data.message){
+				message = message.data.message;
+				this.ws.send(textEncoder.encode(message).buffer, false);
+			}
+			// send nothing if no message. client will have to do parsing bullshit and guesswork to figure out things like if password was correct or when to update nick.
+		}
 	}
 
 	getNick() {
 		if (this.nick) {
 			if (this.rank === 3) return this.nick
-			if (this.rank === 2) return `${this.world.modPrefix} ${this.nick}`
+			if (this.rank === 2) return `${this.world.modPrefix.value} ${this.nick}`
 			return `[${this.uid}] ${this.nick}`
 		}
 		if (this.rank === 3) return `(A) ${this.uid}`
-		if (this.rank === 2) return `${this.world.modPrefix} ${this.uid}`
+		if (this.rank === 2) return `${this.world.modPrefix.value} ${this.uid}`
 		return this.uid.toString()
 	}
 
@@ -152,8 +161,8 @@ export class Client {
 			this.ws.unsubscribe(this.server.adminTopic)
 		}
 		let pquota
-		if (this.world.pquota) {
-			pquota = this.world.pquota
+		if (this.world.pquota.value) {
+			pquota = this.world.pquota.value
 		} else {
 			pquota = this.server.config.defaultPquota
 		}
@@ -164,7 +173,7 @@ export class Client {
 				break
 			}
 			case 2: {
-				if (this.world.doubleModPquota) pquota[1] = Math.ceil(pquota[1] / 2)
+				if (this.world.doubleModPquota.value) pquota[1] = Math.ceil(pquota[1] / 2)
 				break
 			}
 			case 3: {
@@ -179,22 +188,52 @@ export class Client {
 		buffer[1] = rank
 		this.sendBuffer(buffer)
 		if (rank === 2) {
-			this.sendString("Server: You are now a moderator. Do /help for a list of commands.")
+			this.sendMessage({
+				sender: 'server',
+				type: 'info',
+				data:{
+					message: "Server: You are now a moderator. Do /help for a list of commands."
+				}
+			})
 		} else if (rank === 3) {
-			this.sendString("Server: You are now an admin. Do /help for a list of commands.")
+			this.sendMessage({
+				sender: 'server',
+				type: 'info',
+				data:{
+					message: "Server: You are now an admin. Do /help for a list of commands."
+				}
+			})
 		}
 	}
 
 	startProtocol() {
 		if (this.ip.banExpiration !== 0) {
 			if (this.ip.banExpiration === -1) {
-				this.sendString(`You are banned. ${this.server.config.appealMessage}`)
+				this.sendMessage({
+					sender: 'server',
+					type: 'error',
+					data:{
+						message: `You are banned. ${this.server.config.appealMessage}`
+					}
+				})
 				this.destroy()
 				return
 			}
 			if (this.ip.banExpiration > Date.now()) {
-				this.sendString(`Remaining time: ${Math.floor((this.ip.banExpiration - Date.now()) / 1000)} seconds`)
-				this.sendString(`You are banned. ${this.server.config.appealMessage}`)
+				this.sendMessage({
+					sender: 'server',
+					type: 'error',
+					data:{
+						message: `Remaining time: ${Math.floor((this.ip.banExpiration - Date.now()) / 1000)} seconds`
+					}
+				})
+				this.sendMessage({
+					sender: 'server',
+					type: 'error',
+					data:{
+						message: `You are banned. ${this.server.config.appealMessage}`
+					}
+				})
 				this.destroy()
 				return
 			}
@@ -202,12 +241,24 @@ export class Client {
 		}
 		let isWhitelisted = this.ip.isWhitelisted()
 		if (this.server.lockdown && !isWhitelisted) {
-			client.sendString("Sorry, the server is not accepting new connections right now.")
+			client.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data:{
+					message: "Sorry, the server is not accepting new connections right now."
+				}
+			})
 			this.destroy()
 			return
 		}
 		if (this.ip.tooManyClients()) {
-			this.sendString(`Sorry, but you have reached the maximum number of simultaneous connections, (${this.server.config.maxConnectionsPerIp}).`)
+			this.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data:{
+					message: `Sorry, but you have reached the maximum number of simultaneous connections, (${this.server.config.maxConnectionsPerIp}).`
+				}
+			})
 			this.destroy()
 			return
 		}
@@ -323,10 +374,16 @@ export class Client {
 			case 776: {
 				if (this.rank < 2) return
 				if (this.rank < 3) {
-					if (!this.world.pastingAllowed) {
+					if (!this.world.pastingAllowed.value) {
 						if (!this.noPasteTold) {
 							this.noPasteTold = true
-							this.sendString("Pasting is disabled in this world, sorry!")
+							this.sendMessage({
+								sender: 'server',
+								type: 'error',
+								data:{
+									message: "Pasting is disabled in this world, sorry!"
+								}
+							})
 						}
 						return
 					}
@@ -363,7 +420,7 @@ export class Client {
 			case 13: {
 				if (this.rank < 2) return
 				if (this.rank < 3) {
-					if (this.world.simpleMods) return
+					if (this.world.simpleMods.value) return
 					if (!this.pquota.canSpend()) return
 				}
 				let chunkX = message.readInt32LE(0)
@@ -399,7 +456,7 @@ export class Client {
 			case 10: {
 				if (this.rank < 2) return
 				if (this.rank < 3) {
-					if (this.world.simpleMods) return
+					if (this.world.simpleMods.value) return
 					if (!this.protectquota.canSpend()) return
 				}
 				let chunkX = message.readInt32LE(0)
@@ -450,8 +507,8 @@ export class Client {
 				}
 				this.tool = tool
 				if (this.rank < 2) {
-					let maxTpDistance = this.world.maxTpDistance
-					if (Math.abs(x >> 4) > maxTpDistance || Math.abs(y >> 4) > maxTpDistance) {
+					let maxTpDistance = this.world.maxTpDistance.value
+					if (Math.abs(x >> 4) > maxTpDistance.value || Math.abs(y >> 4) > maxTpDistance.value) {
 						let distance = Math.sqrt(Math.pow(x - this.sentX, 2) + Math.pow(y - this.sentY, 2))
 						if (distance > 10000) {
 							this.teleport(this.sentX, this.sentY)
@@ -572,7 +629,13 @@ export class Client {
 			let world = await this.server.worlds.fetch(worldName)
 			if (this.destroyed) return
 			if (world.isFull()) {
-				this.sendString("World full, try again later!")
+				this.sendMessage({
+					sender: 'server',
+					type: 'error',
+					data:{
+						message: "World full, try again later!"
+					}
+				})
 				this.destroy()
 				return
 			}
@@ -601,7 +664,13 @@ export class Client {
 			return
 		}
 		if (!this.ip.captchaquota.canSpend()) {
-			this.sendString("You've done too many captchas recently. Try again in a few seconds.")
+			this.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data:{
+					message: "You've done too many captchas recently. Try again in a few seconds."
+				}
+			})
 			this.destroy()
 			return
 		}

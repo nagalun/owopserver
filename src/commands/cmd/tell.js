@@ -17,7 +17,7 @@ export default {
 				message: usageString(this)
 			}
 		});
-		let target = client.world.clients.get(parseInt[args[0]]);
+		let target = client.world.clients.get(parseInt(args[0]));
 		if(!target) return client.sendMessage({
 			sender: 'server',
 			type: 'error',

@@ -30,7 +30,7 @@ export default {
 						html = true;
 					}
 					command = command.substring(2);
-					client.world.broadcastMessage({
+					client.world.broadcastJSON({
 						sender: 'player',
 						type: 'message',
 						data: {
@@ -79,7 +79,7 @@ export default {
 				html = true;
 			}
 			command = command.substring(2);
-			client.world.broadcastMessage({
+			client.world.broadcastJSON({
 				sender: 'player',
 				type: 'message',
 				data: {

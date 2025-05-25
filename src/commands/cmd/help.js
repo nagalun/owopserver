@@ -24,7 +24,7 @@ export default {
 				sender: 'server',
 				type: 'info',
 				data: {
-					message: `[Server]: Available commands: ${commandsList.join(', ')}.\n\nType /help [command] for more info about a command.`
+					message: `Available commands: ${commandsList.join(', ')}.\n\nType /help [command] for more info about a command.`
 				}
 			});
 			return;
@@ -35,7 +35,7 @@ export default {
 				sender: 'server',
 				type: 'error',
 				data: {
-					message: `[Server]: Unknown command: ${args[0]}.`
+					message: `Unknown command: ${args[0]}.`
 				}
 			});
 			return;
@@ -47,7 +47,7 @@ export default {
 			sender: 'server',
 			type: 'info',
 			data: {
-				message: `[Server]: ${cmd.data.name} - ${cmd.data.description}\nUsage: /${cmd.data.usage}\nAliases: ${aliases}`
+				message: `${cmd.data.name} - ${cmd.data.description}\nUsage: /${cmd.data.usage}\nAliases: ${aliases}`
 			}
 		});
 	}

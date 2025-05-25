@@ -12,14 +12,14 @@ export default {
 		if(!args.length) return;
 		let password = args.join(" ");
 		if(password !== process.env.ADMINPASS) {
-			client.sendMessage({
+			return client.sendMessage({
 				sender: 'server',
 				data: {
 					action: 'invalidatePassword',
 					passwordType: 'adminlogin'
 				}
 			});
-			return client.destroy();
+			// return client.destroy();
 		}
 		client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got admin`);
 		client.setRank(RANK.ADMIN);

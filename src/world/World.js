@@ -1,4 +1,6 @@
 import { Region } from "../region/Region.js"
+import { Property } from "../util/Property.js"
+import { subtle } from "node:crypto"
 
 let textEncoder = new TextEncoder()
 
@@ -10,34 +12,44 @@ export class World {
 		this.name = name
 		let nameBuffer = Buffer.from(name)
 		let topicBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
+		let jsonBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
 		topicBuffer[0] = 0x02
+		jsonBuffer[0] = 0x03
 		nameBuffer.copy(topicBuffer, 1)
+		nameBuffer.copy(jsonBuffer, 1)
 		this.wsTopic = topicBuffer.buffer
+		this.jsonTopic = jsonBuffer.buffer
 
 		this.clients = new Map()
 		this.regions = new Map()
 
-		if (data === null) {
-			this.restricted = new Property('restricted');
-			this.pass = new Property('pass');
-			this.modpass = new Property('modpass');
-			this.pquota = new Property('pquota');
-			this.motd = new Property('motd');
-			this.bgcolor = new Property('bgcolor');
-			this.doubleModPquota = new Property('doubleModPquota');
-			this.pastingAllowed = new Property('pastingAllowed');
-			this.maxPlayers = new Property('maxPlayers');
-			this.maxTpDistance = new Property('maxTpDistance');
-			this.modPrefix = new Property('modPrefix');
-			this.simpleMods = new Property('simpleMods');
-			this.allowGlobalMods = new Property('allowGlobalMods');
-			this.dataModified = new Property('dataModified');
-		} else {
+		this.restricted = new Property('restricted');
+		this.pass = new Property('pass');
+		this.modpass = new Property('modpass');
+		this.pquota = new Property('pquota');
+		this.motd = new Property('motd');
+		this.bgcolor = new Property('bgcolor');
+		this.doubleModPquota = new Property('doubleModPquota');
+		this.pastingAllowed = new Property('pastingAllowed');
+		this.maxPlayers = new Property('maxPlayers');
+		this.maxTpDistance = new Property('maxTpDistance');
+		this.modPrefix = new Property('modPrefix');
+		this.simpleMods = new Property('simpleMods');
+		this.allowGlobalMods = new Property('allowGlobalMods');
+		this.dataModified = false
+
+		if(!!data){
 			data = JSON.parse(data)
-			for (let key in data.properties) {
-				this[key].value = data.properties[key];
+			if(!!data.properties){
+				for (let key in data.properties) {
+					this[key].value = data.properties[key];
+				}
+			} else {
+				// assume evrything is a worldprop cuz old data
+				for (let key in data) {
+					this[key].value = data[key];
+				}
 			}
-			this.dataModified = false
 		}
 
 		this.incrementingId = 1
@@ -51,6 +63,26 @@ export class World {
 		this.lastHeld = this.server.currentTick
 		this.destroyed = false
 	}
+
+	// i swear im not insane
+
+	// static async create(serverWorldManager, name, data){
+	// 	const instance = new this(serverWorldManager, name, data);
+	// 	await instance.#init_json_topic();
+	// 	return instance;
+	// }
+
+	// async #init_json_topic(){
+	// 	const encoder = new TextEncoder();
+	// 	const nameBytes = encoder.encode(this.name);
+	// 	const hashBuffer = await subtle.digest("SHA-256", nameBytes);
+	// 	const hashArray = new Uint8Array(hashBuffer);
+
+	// 	const jsonTopic = new Uint8Array(hashArray.length + 1);
+	// 	jsonTopic[0] = 0x02;
+	// 	jsonTopic.set(hashArray, 1);
+	// 	this.jsonTopic = jsonTopic.buffer;
+	// }
 
 	destroy() {
 		if (this.destroyed) return
@@ -76,7 +108,7 @@ export class World {
 				maxTpDistance: this.maxTpDistance.value,
 				modPrefix: this.modPrefix.value,
 				allowGlobalMods: this.allowGlobalMods.value,
-				simpleMods: this.simpleMod.values
+				simpleMods: this.simpleMods.value
 			}
 		}
 		this.serverWorldManager.worldDestroyed(this, JSON.stringify(data))
@@ -96,6 +128,7 @@ export class World {
 	broadcastBuffer(buffer) {
 		let arrayBuffer = buffer.buffer
 		this.server.wsServer.publish(this.wsTopic, arrayBuffer, true)
+		this.server.wsServer.publish(this.jsonTopic, arrayBuffer, true)
 	}
 
 	broadcastString(string) {
@@ -103,26 +136,41 @@ export class World {
 		this.server.wsServer.publish(this.wsTopic, arrayBuffer, false)
 	}
 
-	broadcastMessage(message){
-		this.server.wsServer.publish(this.wsTopic, JSON.stringify(message), false);
+	broadcastJSON(message){
+		this.server.wsServer.publish(this.jsonTopic, JSON.stringify(message), false);
+		console.log(message);
 	}
 
 	isFull() {
-		return this.clients.size >= this.maxPlayers
+		return this.clients.size >= this.maxPlayers.value
 	}
 
 	addClient(client) {
 		let id = this.incrementingId++
 		this.clients.set(id, client)
 		client.world = this
-		client.ws.subscribe(this.wsTopic)
+		// client.ws.subscribe(this.wsTopic)
+		if(client.chatFormat==="v2") client.ws.subscribe(this.jsonTopic);
+		else client.ws.subscribe(this.wsTopic);
 		client.setUid(id)
-		if (this.motd !== null) client.sendString(this.motd)
+		if (this.motd.value !== null) client.sendMessage({
+			sender: 'server',
+			type: 'raw',
+			data:{
+				message: this.motd.value
+			}
+		})
 		client.lastUpdate = this.server.currentTick
 		this.updateAllPlayers = true
-		if (this.restricted) return
-		if (this.pass) {
-			client.sendString("[Server] This world has a password set. Use '/pass PASSWORD' to unlock drawing.")
+		if (this.restricted.value) return
+		if (this.pass.value) {
+			client.sendMessage({
+				sender: 'server',
+				type: 'info',
+				data:{
+					message: "[Server]: This world has a password set. Use '/pass PASSWORD' to unlock drawing."	
+				}
+			})
 			return
 		}
 		client.setRank(1)
@@ -141,13 +189,15 @@ export class World {
 	// }
 
 	sendChat(client, message) {
-		this.broadcastMessage({
+		let string = `${client.getNick()}: ${message}`
+		this.broadcastString(string);
+		this.broadcastJSON({
 			sender: 'player',
 			type: 'message',
 			data: {
 				senderID: client.uid,
 				message: message,
-				nick: client.nick,
+				nick: client.getNick(),
 				rank: client.rank
 			}
 		});

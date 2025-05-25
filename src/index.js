@@ -25,3 +25,8 @@ rl.on("SIGINT", async () => {
 let config = JSON.parse(await fs.readFile("./config.json"))
 
 let server = new Server(config)
+console.log("Server started.")
+console.log("Listening on port " + server.config.port)
+console.log(`Admin password: ${process.env.ADMINPASS}`)
+console.log(`Mod password: ${process.env.MODPASS}`)
+console.log(`Captcha password: ${process.env.CAPTCHAPASS}`)

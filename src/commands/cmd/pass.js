@@ -16,20 +16,20 @@ export default {
 			}
 		});
 		if(client.rank >= 2) return;
-		if(args===client.world.modpass){
+		if(args===client.world.modpass.value){
 			client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`);
 			client.sendMessage({
 				sender: 'server',
 				data:{
 					action: 'savePassword',
-					passwordType: client.world.name
+					passwordType: 'worldpass'
 				}
 			});
 			client.setRank(2);
 			return;
 		}
-		if(client.rank < 1 && args===client.world.pass){
-			if(client.world.restricted){
+		if(client.rank < 1 && args===client.world.pass.value){
+			if(client.world.restricted.value){
 				client.sendMessage({
 					sender: 'server',
 					type: 'error',
@@ -43,7 +43,7 @@ export default {
 				sender: 'server',
 				data:{
 					action: 'savePassword',
-					passwordType: client.world.name
+					passwordType: 'worldpass'
 				}
 			});
 			client.setRank(1);
@@ -53,37 +53,9 @@ export default {
 			sender: 'server',
 			data:{
 				action: 'invalidatePassword',
-				passwordType: client.world.name
+				passwordType: 'worldpass'
 			}
 		});
-		client.destroy();
+		// client.destroy();
 	}
 }
-
-commands.set("pass", {
-	minRank: 0,
-	hidden: false,
-	eval: function (client, args, argsSplit) {
-	  if (!args) {
-		client.sendString("Use to unlock drawing on a protected world.")
-		client.sendString("Usage: /pass WORLDPASSWORD")
-		return
-	  }
-	  if (client.rank >= 2) return
-	  if (args === client.world.modpass) {
-		client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`)
-		client.setRank(2)
-		return
-	  } else if (client.rank < 1 && args === client.world.pass) {
-		if (client.world.restricted) {
-		  client.sendString("Can't unlock drawing, this world is restricted!")
-		  return
-		}
-		client.setRank(1)
-		return
-	  } else {
-		client.destroy()
-		return
-	  }
-	}
-  })

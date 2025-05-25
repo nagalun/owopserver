@@ -12,14 +12,14 @@ export default {
 		if(!args.length) return;
 		let password = args.join(" ");
 		if(password !== process.env.MODPASS) {
-			client.sendMessage({
+			return client.sendMessage({
 				sender: 'server',
 				data: {
 					action: 'invalidatePassword',
 					passwordType: 'modlogin'
 				}
 			});
-			return client.destroy();
+			// return client.destroy();
 		}
 		if(!client.world.allowGlobalMods.value){
 			return client.sendMessage({
