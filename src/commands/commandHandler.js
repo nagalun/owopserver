@@ -15,7 +15,7 @@ export function handleCommand(client, message) {
   }
   let argsSplit = split.slice(1)
   command.eval(client, args, argsSplit)
-  if(!(cmdBase == "nick" || cmdBase == "pass" || cmdBase == "adminlogin")){
+  if(!(cmdBase == "pass" || cmdBase == "adminlogin")){
     if(!(client.ws.origin == "Discord Bot" && (cmdBase == "tellraw" || cmdBase == "sayraw" || cmdBase == "whois"))){
       console.log(`client ${client.uid} (${client.ip.ip}/${client.world.name}) executed: ${message}`);
     }
@@ -33,7 +33,7 @@ commands.set("nick", {
       client.sendString("Nickname reset.")
       return
     }
-    let nick = args.trim()
+    let nick = args.trim().replaceAll("\n", "")
     let maxLength = [16, 16, 40, Infinity][client.rank]
     if (nick.length > maxLength) {
       client.sendString(`Nickname too long! (Max: ${maxLength})`)
@@ -55,6 +55,7 @@ commands.set("pass", {
     if (client.rank >= 2) return
     if (args === client.world.modpass.value) {
       client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`)
+      console.log(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`)
       client.setRank(2)
       return
     } else if (client.rank < 1 && args === client.world.pass.value) {
@@ -103,24 +104,24 @@ commands.set("tell", {
     target.sendString(`-> ${client.uid} tells you: ${message}`)
   }
 })
-commands.set("modlogin", {
-  minRank: 0,
-  hidden: true,
-  eval: function (client, args, argsSplit) {
-    if (client.rank >= 2) return
-    if (!args) return
-    if (args !== process.env.MODPASS) {
-      client.destroy()
-      return
-    }
-    if (!client.world.allowGlobalMods.value) {
-      client.sendString("Sorry, but global moderators are disabled on this world.")
-      return
-    }
-    client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got mod`)
-    client.setRank(2)
-  }
-})
+//commands.set("modlogin", {
+//  minRank: 0,
+//  hidden: true,
+//  eval: function (client, args, argsSplit) {
+//    if (client.rank >= 2) return
+//    if (!args) return
+//    if (args !== process.env.MODPASS) {
+//      client.destroy()
+//      return
+//    }
+//    if (!client.world.allowGlobalMods.value) {
+//      client.sendString("Sorry, but global moderators are disabled on this world.")
+//      return
+//    }
+//    client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got mod`)
+//    client.setRank(2)
+//  }
+//})
 commands.set("adminlogin", {
   minRank: 0,
   hidden: true,
@@ -230,8 +231,10 @@ commands.set("setrank", {
     }
     target.setRank(rank)
     if (rank === 3) {
+      console.log(`DEV${target.uid} (${target.world.name}, ${target.ip.ip}) Got admin from setrank`)
       client.server.adminMessage(`DEV${target.uid} (${target.world.name}, ${target.ip.ip}) Got admin from setrank`)
     } else if (rank === 2) {
+      console.log(`DEV${target.uid} (${target.world.name}, ${target.ip.ip}) Got mod from setrank`)
       client.server.adminMessage(`DEV${target.uid} (${target.world.name}, ${target.ip.ip}) Got mod from setrank`)
     }
     client.sendString(`Set user's (${target.uid}) rank to: ${rank}`)
@@ -382,6 +385,7 @@ commands.set("setworldpass", {
     if (!value) return
     client.sendString(`-> World password set to: '${value}'`)
     client.world.setProp("pass", value)
+    client.world.demoteAllNormalUsers()
   }
 })
 commands.set("stealth", {
@@ -1007,3 +1011,4 @@ commands.set("endprocess", {
     process.exit()
   }
 })
+

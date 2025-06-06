@@ -210,4 +210,11 @@ export class World {
 		}
 		return count
 	}
+
+  demoteAllNormalUsers() {
+    for (let client of this.clients.values()) {
+      if (client.rank !== 1) continue
+      client.setRank(0)
+    }
+  }
 }
