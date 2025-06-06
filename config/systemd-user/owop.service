@@ -24,7 +24,8 @@ SocketBindDeny=any
 
 # home dir root + unit name@instance without extension + "-cwd"
 BindPaths=%h/%N-cwd:/cwd
-BindReadOnlyPaths=/nix/store /etc/resolv.conf /etc/static/ssl:/etc/ssl /etc/static/pki:/etc/pki %h/%N-result:/result
+BindReadOnlyPaths=/nix/store /etc/resolv.conf %h/%N-result:/result
+BindReadOnlyPaths=/etc/ssl/certs/ca-bundle.crt /etc/pki/tls/certs/ca-bundle.crt
 NoExecPaths=/
 ExecPaths=/nix/store
 
