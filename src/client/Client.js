@@ -528,7 +528,7 @@ export class Client {
       }
       message = Buffer.from(message)
       //check if too long
-      if (message.length > 26) {
+      if (message.length > 26 || message.length < 2) {
         this.destroy()
         return
       }
