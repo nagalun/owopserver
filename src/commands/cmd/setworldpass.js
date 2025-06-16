@@ -67,5 +67,6 @@ export default {
 			}
 		});
 		client.world.setProp("pass", value);
+		client.world.demoteAllNormalUsers();
 	}
 }
