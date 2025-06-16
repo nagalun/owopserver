@@ -15,21 +15,50 @@ RuntimeDirectory=%N-root
 RootDirectory=%t/%N-root
 ExecStart=/result/bin/owopserver
 
+MemoryHigh=4G
+MemoryMax=5G
+MemorySwapMax=4G
+
+#SocketBindAllow=tcp:13375
+SocketBindDeny=any
+
 # home dir root + unit name@instance without extension + "-cwd"
-BindPaths=/var/run/postgresql %h/%N-cwd:/cwd
-BindReadOnlyPaths=/nix/store /etc/resolv.conf /etc/static/ssl:/etc/ssl /etc/static/pki:/etc/pki %h/%N-result:/result
-ProtectSystem=strict
-PrivateUsers=true
+BindPaths=%h/%N-cwd:/cwd
+BindReadOnlyPaths=/nix/store /etc/resolv.conf %h/%N-result:/result
+BindReadOnlyPaths=/etc/ssl/certs/ca-bundle.crt /etc/pki/tls/certs/ca-bundle.crt
 NoExecPaths=/
 ExecPaths=/nix/store
 
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 NoNewPrivileges=true
+ProtectSystem=strict
+PrivateUsers=true
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
+CapabilityBoundingSet=
+PrivateDevices=true
+ProtectClock=true
+ProtectKernelLogs=true
+SystemCallArchitectures=native
+RestrictNamespaces=true
 RestrictSUIDSGID=true
 DevicePolicy=closed
+ProtectHostname=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @swap
+ProtectHome=true
+KeyringMode=private
+UMask=0077
+
+ProtectProc=ptraceable
+
+# Foreign code exec protection (Incompatible with JIT)
+#MemoryDenyWriteExecute=true
+#SystemCallFilter=~memfd_create
+#InaccessiblePaths=/dev/shm
 
 [Install]
 WantedBy=default.target

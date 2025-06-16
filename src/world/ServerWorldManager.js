@@ -21,7 +21,8 @@ export class ServerWorldManager {
     promise = new Promise(res => resolve = res)
     this.map.set(world, promise)
     let worldData = await this.dbCache.get(world)
-    let worldObject = new World(this, world, worldData)
+	let worldObject = new World(this, world, worldData);
+    // let worldObject = await World.create(this, world, worldData)
     this.map.set(world, worldObject)
     resolve(worldObject)
     return worldObject
