@@ -153,7 +153,7 @@ run-parallel-limit@^1.1.0:
 
 uWebSockets.js@uNetworking/uWebSockets.js#v20.52.0:
   version "20.52.0"
-  resolved "git+ssh://git@github.com/uNetworking/uWebSockets.js.git#cfc9a40d8132a34881813cec3d5f8e3a185b3ce3"
+  resolved "https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/cfc9a40d8132a34881813cec3d5f8e3a185b3ce3"
 
 web-streams-polyfill@^3.0.3:
   version "3.2.1"
