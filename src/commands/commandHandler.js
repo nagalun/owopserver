@@ -20,6 +20,7 @@ export function handleCommand(client, message){
 	}
 	if(client.rank < (!!cmd.data.minRank?cmd.data.minRank:RANK.NONE)) return;
 	if(cmd.data.disabled) return;
+	if(cmd.nolog) console.log("client", client.uid, "on", client.world.name, "with ip", client.ip.ip, "executed:", cmd.data.name);
 	cmd.execute(client,args);
 }
 

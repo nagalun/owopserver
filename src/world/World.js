@@ -268,13 +268,20 @@ export class World {
 		this.broadcastBuffer(buffer)
 	}
 
-	kickNonAdmins() {
-		let count = 0
-		for (let client of this.clients.values()) {
-			if (client.rank === 3) continue
-			client.destroy()
-			count++
-		}
-		return count
-	}
+  kickNonAdmins() {
+    let count = 0
+    for (let client of this.clients.values()) {
+      if (client.rank === 3) continue
+      client.destroy()
+      count++
+    }
+    return count
+  }
+
+  demoteAllNormalUsers() {
+    for (let client of this.clients.values()) {
+      if (client.rank !== 1) continue
+      client.setRank(0)
+    }
+  }
 }

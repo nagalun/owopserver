@@ -8,6 +8,7 @@ import { data as miscData, saveAndClose } from "./miscData.js"
 import { handleRequest as handleApiRequest } from "../api/api.js"
 import { getIpFromHeader } from "../util/util.js"
 import { loadCommands } from "../commands/commandHandler.js"
+import { chmod } from 'fs'
 
 let textEncoder = new TextEncoder()
 let textDecoder = new TextDecoder()
@@ -23,7 +24,7 @@ export class Server {
 		this.worlds = new ServerWorldManager(this)
 		this.regions = new ServerRegionManager(this)
 
-		this.listenSocket = null
+		this.listenSockets = []
 		this.wsServer = this.createServer()
 		this.globalTopic = Uint8Array.from([0x00]).buffer
 		this.globalV2Topic = Uint8Array.from([0x01]).buffer
@@ -41,18 +42,18 @@ export class Server {
 		this.destroyed = false
 	}
 
-	async destroy() {
-		if (this.destroyed) return
-		this.destroyed = true
-		this.adminMessage("DEVServer shutdown initiated")
-		clearTimeout(this.tickTimeout)
-		if (this.listenSocket) uWS.us_listen_socket_close(this.listenSocket)
-		this.clients.destroy()
-		await this.worlds.destroy()
-		await this.regions.destroy()
-		await this.ips.destroy()
-		await saveAndClose()
-	}
+  async destroy() {
+    if (this.destroyed) return
+    this.destroyed = true
+    this.adminMessage("DEVServer shutdown initiated")
+    clearTimeout(this.tickTimeout)
+    this.listenSockets.forEach(sock => uWS.us_listen_socket_close(sock))
+    this.clients.destroy()
+    await this.worlds.destroy()
+    await this.regions.destroy()
+    await this.ips.destroy()
+    await saveAndClose()
+  }
 
 	createServer() {
 		let server
@@ -145,9 +146,27 @@ export class Server {
 			res.writeStatus("400 Bad Request")
 			res.end()
 		})
-		server.listen(parseInt(process.env.WS_PORT), listenSocket => {
-			this.listenSocket = listenSocket
-		})
+    if (process.env.UNIX_SOCKET) {
+      server.listen_unix(listenSocket => {
+        if (!listenSocket) {
+          console.error("Failed to listen on:", process.env.UNIX_SOCKET)
+          return
+        }
+        this.listenSockets.push(listenSocket)
+        if (process.env.UNIX_MODE) chmod(process.env.UNIX_SOCKET, process.env.UNIX_MODE, err => {
+          if (err) console.error("Failed to chmod the unix socket", err)
+        })
+      }, process.env.UNIX_SOCKET)
+    }
+    if (process.env.WS_PORT) {
+  		server.listen(parseInt(process.env.WS_PORT), listenSocket => {
+        if (!listenSocket) {
+          console.error("Failed to listen on port:", process.env.WS_PORT)
+          return
+        }
+  			this.listenSockets.push(listenSocket)
+      })
+		}
 		return server
 	}
 
