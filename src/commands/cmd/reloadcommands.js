@@ -9,13 +9,6 @@ export default {
 		aliases: ['rc'],
 		minRank: RANK.DEVELOPER,
 	}, async execute(client, args){
-		await loadCommands();
-		client.sendMessage({
-			sender: 'server',
-			data:{
-				type: 'info',
-			},
-			text: `[All commands reloaded]`
-		});
+		await loadCommands(client.server,client);
 	}
 }

@@ -8,6 +8,14 @@ This is a server for https://ourworldofpixels.com. It's written in Node.js and d
 4. If you wish, configure some other server properties in config.json
 5. Run `yarn install` from a command prompt in the server directory
 6. Run `yarn start` to start the server
+7. If using some weird fucked up server config u can specify a location to symlink commands to relative to repo src dir in config.json
+
+(7a) - in config.json do this:
+```json
+"cmdPathOverride": {
+	"src": "path/to/repo/src/dir"
+}
+```
 
 ## About
 I made this mostly as a fun project to see if I could. I've coded in OWOP for a decent amount of time, but only ever from the client's side.

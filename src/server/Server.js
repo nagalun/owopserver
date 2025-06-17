@@ -17,7 +17,7 @@ export class Server {
 	constructor(config) {
 		this.config = config
 
-		loadCommands();
+		loadCommands(this);
 
 		this.clients = new ServerClientManager(this)
 		this.ips = new ServerIpManager(this)
