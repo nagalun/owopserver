@@ -1,5 +1,3 @@
-import fetch from "node-fetch"
-
 export async function verifyCaptchaToken(token) {
 	try {
 		let result = await fetch(`https://www.google.com/recaptcha/api/siteverify?secret=${process.env.CAPTCHA_SECRET}&response=${encodeURIComponent(token)}`, {
