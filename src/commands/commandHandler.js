@@ -33,31 +33,32 @@ const __dirname = path.dirname(__filename);
 export async function loadCommands(server, client = null) {
 	let cmdPath = path.join(__dirname, "cmd");
 	if (server.config.cmdPathOverride) {
-		console.info('a cmdpath override was specified. a symlink will be generated.');
-		let srcDir = path.join(server.config.cmdPathOverride.src, 'commands', 'cmd');
-		let targetDir = path.join(process.cwd(), 'cmd');
+		cmdPath = path.join(server.config.cmdPathOverride.src,'commands','cmd');
+		// console.info('a cmdpath override was specified. a symlink will be generated.');
+		// let srcDir = path.join(server.config.cmdPathOverride.src, 'commands', 'cmd');
+		// let targetDir = path.join(process.cwd(), 'cmd');
 
-		if (existsSync(targetDir)) {
-			const so = await lstat(targetDir);
-			if (so.isSymbolicLink()) {
-				console.log('potentially invalid symlink present. regenerating...');
-				try {
-					await rm(targetDir, { recursive: false });
-				} catch (e) {
-					console.error('failed to remove symlink.', e);
-					return; // no point in continuing, the symlink may be invalid.
-				}
-			}
-		}
-		try {
-			await symlink(srcDir, targetDir, 'dir');
-			console.log('generated symlink.')
-		} catch (e) {
-			console.error('failed to generate symlink.', e);
-			return;
-		}
+		// if (existsSync(targetDir)) {
+		// 	const so = await lstat(targetDir);
+		// 	if (so.isSymbolicLink()) {
+		// 		console.log('potentially invalid symlink present. regenerating...');
+		// 		try {
+		// 			await rm(targetDir, { recursive: false });
+		// 		} catch (e) {
+		// 			console.error('failed to remove symlink.', e);
+		// 			return; // no point in continuing, the symlink may be invalid.
+		// 		}
+		// 	}
+		// }
+		// try {
+		// 	await symlink(srcDir, targetDir, 'dir');
+		// 	console.log('generated symlink.')
+		// } catch (e) {
+		// 	console.error('failed to generate symlink.', e);
+		// 	return;
+		// }
 
-		cmdPath = targetDir;
+		// cmdPath = targetDir;
 	}
 
 	commands.clear();
