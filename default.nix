@@ -14,7 +14,7 @@ with nixpkgs; stdenv.mkDerivation rec {
 
 	yarnOfflineCache = fetchYarnDeps {
 		yarnLock = "${src}/yarn.lock";
-		hash = "sha256-HTcBNVBRa7gRZFg5ALVM+jSn8+b3dn2VmfDDbdPRExY=";
+		hash = "sha256-Q5Y3JMvwVZEzHtHUXqKvYavgZVzW/6PqVmuV0xj7ipA=";
 	};
 
 	# Grab the dependencies for running later
