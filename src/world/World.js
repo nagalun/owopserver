@@ -151,10 +151,7 @@ export class World {
 		return this.clients.size >= this.maxPlayers.value
 	}
 
-	addClient(client) {
-		let id = this.incrementingId++
-		this.clients.set(id, client)
-		client.world = this
+	authBot(client){
 		if(client.ws.extra.botIdentifier){
 			if(!this.allowedBots.size) return; // undefined worldprop, no need to even check here.
 			if(this.identifiedBots.has(client.ws.extra.botIdentifier)) return;
@@ -172,11 +169,17 @@ export class World {
 				}
 			}
 			if(!conflicting){
-				// allowedBots.value is a Map of bot identifiers with values of strings corresponding to bot secret.
 				if(!this.allowedBots.has(client.ws.extra.botIdentifier)) return;
 				this.identifiedBots.set(client.ws.extra.botIdentifier, client);
 			}
 		}
+	}
+
+	addClient(client) {
+		let id = this.incrementingId++
+		this.clients.set(id, client)
+		client.world = this
+		this.authBot(client);
 		// client.ws.subscribe(this.wsTopic)
 		if(client.chatFormat==="v2") client.ws.subscribe(this.jsonTopic);
 		else client.ws.subscribe(this.wsTopic);
