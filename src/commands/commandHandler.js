@@ -17,7 +17,12 @@ export function handleCommand(client, message) {
 				break;
 			}
 		}
-		if (!cmd) return;
+		if (!cmd){
+			const bot = client.server.bots.get(cmdName);
+			if(!bot) return;
+			cmd = 'tell';
+			args = [bot.uid, ...message.split(' ')];
+		}
 	}
 	if (client.rank < (!!cmd.data.minRank ? cmd.data.minRank : RANK.NONE)) return;
 	if (cmd.data.disabled) return;

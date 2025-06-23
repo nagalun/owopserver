@@ -7,7 +7,7 @@ import { ServerRegionManager } from "../region/ServerRegionManager.js"
 import { data as miscData, saveAndClose } from "./miscData.js"
 import { handleRequest as handleApiRequest } from "../api/api.js"
 import { getIpFromHeader } from "../util/util.js"
-import { loadCommands } from "../commands/commandHandler.js"
+import { loadCommands, commands } from "../commands/commandHandler.js"
 import { chmod } from 'fs'
 
 let textEncoder = new TextEncoder()
@@ -20,6 +20,7 @@ export class Server {
 		loadCommands(this);
 
 		this.clients = new ServerClientManager(this)
+		this.bots = new Map();
 		this.ips = new ServerIpManager(this)
 		this.worlds = new ServerWorldManager(this)
 		this.regions = new ServerRegionManager(this)
@@ -81,6 +82,7 @@ export class Server {
 					let origin = req.getHeader("origin")
 					//get chat format
 					let format = req.getQuery("chat") == "v2" ? "v2" : "v1";
+					let botIdentifier = req.getHeader("bot-identifier");
 					//handle abort
 					let aborted = false
 					res.onAborted(() => {
@@ -104,6 +106,7 @@ export class Server {
 								origin,
 								ip,
 								format,
+								botIdentifier,
 								closed: false
 							}, secWebSocketKey, secWebSocketProtocol, secWebSocketExtensions, context)
 						})
@@ -120,6 +123,12 @@ export class Server {
 					this.stats.totalConnections++
 					let client = this.clients.createClient(ws)
 					ws.client = client
+					if(ws.botIdentifier){
+						client.bot = true;
+						if(!commands.has(ws.botIdentifier)){
+							this.bots.set(ws.botIdentifier, client);
+						}
+					}
 					client.startProtocol()
 				} catch (error) {
 					console.error(error)
@@ -135,6 +144,7 @@ export class Server {
 			close: (ws, code, message) => {
 				try {
 					ws.closed = true
+					this.bots.delete(ws.botIdentifier);
 					ws.client.destroy()
 				} catch (error) {
 					console.error(error)
