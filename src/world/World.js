@@ -1,6 +1,7 @@
 import { Region } from "../region/Region.js"
 import { Property } from "../util/Property.js"
 import { subtle } from "node:crypto"
+import { commands } from "../commands/commandHandler.js"
 
 let textEncoder = new TextEncoder()
 
@@ -38,6 +39,8 @@ export class World {
 		this.allowGlobalMods = new Property('allowGlobalMods');
 		this.dataModified = false
 
+		this.identifiedBots = new Map();
+
 		if(!!data){
 			data = JSON.parse(data)
 			if(!!data.properties){
@@ -50,6 +53,8 @@ export class World {
 					this[key].value = data[key];
 				}
 			}
+			if(!!data.allowedBots) this.allowedBots = new Map(Object.entries(data.allowedBots));
+			else this.allowedBots = new Map();
 		}
 
 		this.incrementingId = 1
@@ -108,8 +113,9 @@ export class World {
 				maxTpDistance: this.maxTpDistance.value,
 				modPrefix: this.modPrefix.value,
 				allowGlobalMods: this.allowGlobalMods.value,
-				simpleMods: this.simpleMods.value
-			}
+				simpleMods: this.simpleMods.value,
+			},
+			allowedBots: this.allowedBots instanceof Map ? Object.fromEntries(this.allowedBots) : {},
 		}
 		this.serverWorldManager.worldDestroyed(this, JSON.stringify(data))
 	}
@@ -149,6 +155,28 @@ export class World {
 		let id = this.incrementingId++
 		this.clients.set(id, client)
 		client.world = this
+		if(client.ws.extra.botIdentifier){
+			if(!this.allowedBots.size) return; // undefined worldprop, no need to even check here.
+			if(this.identifiedBots.has(client.ws.extra.botIdentifier)) return;
+			let conflicting = false;
+			for(let cmd of commands.values()){
+				if(cmd.data.name === client.ws.extra.botIdentifier){
+					conflicting = true;
+					break;
+				}
+				if(cmd.data.aliases){
+					if(cmd.data.aliases.includes(client.ws.extra.botIdentifier)){
+						conflicting = true;
+						break;
+					}
+				}
+			}
+			if(!conflicting){
+				// allowedBots.value is a Map of bot identifiers with values of strings corresponding to bot secret.
+				if(!this.allowedBots.has(client.ws.extra.botIdentifier)) return;
+				this.identifiedBots.set(client.ws.extra.botIdentifier, client);
+			}
+		}
 		// client.ws.subscribe(this.wsTopic)
 		if(client.chatFormat==="v2") client.ws.subscribe(this.jsonTopic);
 		else client.ws.subscribe(this.wsTopic);
@@ -180,6 +208,7 @@ export class World {
 		this.clients.delete(client.uid)
 		this.playerDisconnects.add(client.uid)
 		this.playerUpdates.delete(client)
+		if(this.identifiedBots.has(client.ws.extra.botIdentifier)) this.identifiedBots.delete(client.ws.extra.botIdentifier);
 		if (this.clients.size === 0) this.lastHeld = this.server.currentTick
 	}
 

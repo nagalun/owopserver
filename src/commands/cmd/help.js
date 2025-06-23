@@ -27,6 +27,13 @@ export default {
 					message: `Available commands: ${commandsList.join(', ')}.\n\nType /help [command] for more info about a command.`
 				}
 			});
+			if(client.world.identifiedBots.size) client.sendMessage({
+				sender:'server',
+				type:'raw',
+				data:{
+					message:`Available bots: ${Array.from(client.world.identifiedBots.keys()).join(', ')}`
+				}
+			});
 			return;
 		}
 		let cmd = commands.get(args[0].toLowerCase());

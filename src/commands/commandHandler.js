@@ -18,10 +18,10 @@ export function handleCommand(client, message) {
 			}
 		}
 		if (!cmd){
-			const bot = client.server.bots.get(cmdName);
+			const bot = client.world.identifiedBots.get(cmdName);
 			if(!bot) return;
-			cmd = 'tell';
-			args = [bot.uid, ...message.split(' ')];
+			cmd = commands.get('tell');
+			args = [bot.uid, ...args];
 		}
 	}
 	if (client.rank < (!!cmd.data.minRank ? cmd.data.minRank : RANK.NONE)) return;
