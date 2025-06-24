@@ -54,7 +54,10 @@ export class World {
 				}
 			}
 			if(!!data.allowedBots) this.allowedBots = new Map(Object.entries(data.allowedBots));
-			else this.allowedBots = new Map();
+			else {
+				console.log("AAAAAAAAAAAAAA");
+				this.allowedBots = new Map();
+			}
 		}
 
 		this.incrementingId = 1
