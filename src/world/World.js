@@ -40,6 +40,7 @@ export class World {
 		this.dataModified = false
 
 		this.identifiedBots = new Map();
+		this.allowedBots = new Map();
 
 		if(!!data){
 			data = JSON.parse(data)
@@ -54,10 +55,6 @@ export class World {
 				}
 			}
 			if(!!data.allowedBots) this.allowedBots = new Map(Object.entries(data.allowedBots));
-			else {
-				console.log("AAAAAAAAAAAAAA");
-				this.allowedBots = new Map();
-			}
 		}
 
 		this.incrementingId = 1

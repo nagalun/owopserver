@@ -114,7 +114,7 @@ export class Client {
 		// 		showLoading: false, // for 'updateStatus' action, whether or not to show the loading gif.
 		// 	}
 		// }
-		console.log(message);
+		// console.log(message);
 		if(this.chatFormat==="v2") this.ws.send(JSON.stringify(message), false);
 		else{
 			if(!!message.data&&!!message.data.message){
