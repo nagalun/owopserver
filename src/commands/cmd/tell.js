@@ -22,6 +22,8 @@ export default {
 						message:'?',
 						rank:client.rank,
 						senderID:client.uid,
+						isBot: client.bot,
+						nick: client.getNick()
 					}
 				});
 			}
@@ -49,6 +51,8 @@ export default {
 				message,
 				rank: client.rank,
 				senderID: client.uid,
+				isBot: client.bot,
+				nick: client.getNick()
 			}
 		});
 		if(target.bot) return;

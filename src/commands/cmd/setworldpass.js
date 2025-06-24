@@ -9,7 +9,7 @@ export default {
 		description: 'Sets the password for this world.',
 		hidden: false,
 	}, async execute(client, args) {
-		if (client.rank < RANK.MODERATOR && client.world.simpleMods.value) return client.sendMessage({
+		if (client.rank < RANK.ADMIN && client.world.simpleMods.value) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {

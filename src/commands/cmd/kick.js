@@ -10,14 +10,14 @@ export default {
 		hidden: false,
 		aliases: ["k"],
 	}, async execute(client, args){
-		if(client.rank < RANK.MODERATOR && client.world.simpleMods.value) return client.sendMessage({
+		if(client.rank < RANK.ADMIN && client.world.simpleMods.value) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {
 				message: 'No kick for you.'
 			}
 		});
-		if(args.length < 2) return client.sendMessage({
+		if(args.length < 1) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {

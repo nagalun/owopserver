@@ -9,7 +9,7 @@ export default {
 		hidden: false,
 		aliases: ["sr"],
 	}, async execute(client, args){
-		if(client.rank < RANK.MODERATOR && client.world.simpleMods.value) return client.sendMessage({
+		if(client.rank < RANK.ADMIN && client.world.simpleMods.value) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {
