@@ -511,7 +511,7 @@ export class Client {
 				if (this.rank < 2) {
 					let maxTpDistance = this.world.maxTpDistance.value
 					if (Math.abs(x >> 4) > maxTpDistance.value || Math.abs(y >> 4) > maxTpDistance.value) {
-						let distance = Math.sqrt(Math.pow(x - this.sentX, 2) + Math.pow(y - this.sentY, 2))
+						let distance = Math.sqrt(Math.pow((x >> 4) - (this.sentX >> 4), 2) + Math.pow((y >> 4) - (this.sentY >> 4), 2))
 						if (distance > 10000) {
 							this.teleport(this.sentX, this.sentY)
 							return
