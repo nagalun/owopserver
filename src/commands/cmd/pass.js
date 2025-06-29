@@ -5,7 +5,7 @@ export default {
 	data: {
 		name: "pass",
 		minRank: RANK.NONE,
-		usage: 'pass <password>',
+		usage: 'pass &lt;password&gt;',
 		description: 'Unlocks drawing on a protected world.',
 		nolog: true,
 	}, async execute(client, args){
@@ -17,7 +17,8 @@ export default {
 			}
 		});
 		if(client.rank >= 2) return;
-		if(args===client.world.modpass.value){
+		let pass = args.join(' ');
+		if(pass===client.world.modpass.value){
 			client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`);
 			client.sendMessage({
 				sender: 'server',
@@ -29,7 +30,7 @@ export default {
 			client.setRank(2);
 			return;
 		}
-		if(client.rank < 1 && args===client.world.pass.value){
+		if(client.rank < 1 && pass===client.world.pass.value){
 			if(client.world.restricted.value){
 				client.sendMessage({
 					sender: 'server',
