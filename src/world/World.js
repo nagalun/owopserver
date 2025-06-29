@@ -138,7 +138,7 @@ export class World {
 	}
 
 	broadcastString(string) {
-		let arrayBuffer = textEncoder.encode(`${string}`).buffer
+		let arrayBuffer = textEncoder.encode(string).buffer
 		this.server.wsServer.publish(this.wsTopic, arrayBuffer, false)
 	}
 

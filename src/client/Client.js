@@ -119,7 +119,7 @@ export class Client {
 		else{
 			if(!!message.data&&!!message.data.message){
 				message = message.data.message;
-				this.ws.send(textEncoder.encode(`[0]: ${message}`).buffer, false);
+				this.ws.send(textEncoder.encode(message).buffer, false);
 			}
 			// send nothing if no message. client will have to do parsing bullshit and guesswork to figure out things like if password was correct or when to update nick.
 		}
