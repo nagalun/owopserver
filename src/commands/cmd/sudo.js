@@ -35,7 +35,7 @@ export default {
 						type: 'message',
 						data: {
 							allowHTML: html,
-							nick: target.nick,
+							nick: target.getNick(),
 							rank: target.rank,
 							senderID: target.uid,
 							message: command
