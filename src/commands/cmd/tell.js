@@ -11,10 +11,16 @@ export default {
 		aliases: ["t","msg","whisper","w"],
 		nolog: true,
 	}, async execute(client, args){
+		if(args.length < 1) return client.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data: {
+					message: usageString(this)
+				}
+			});
 		if(args.length < 2) {
-			if(client.bot) {
-				let target = client.world.clients.get(parseInt(args[0]));
-				if(!target) return;
+			let target = client.world.clients.get(parseInt(args[0]));
+			if(target.bot) {
 				return target.sendMessage({
 					sender:'player',
 					type:'whisperReceived',
@@ -55,8 +61,6 @@ export default {
 				nick: client.getNick()
 			}
 		});
-		console.log(target);
-		console.log(target.bot);
 		if(target.bot) return;
 		client.sendMessage({
 			sender: 'server',
