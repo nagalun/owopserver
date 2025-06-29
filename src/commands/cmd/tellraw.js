@@ -36,7 +36,7 @@ export default {
 			sender: 'server',
 			type: 'raw',
 			data:{
-				message: args.slice(1).join(" ")
+				message: args.join(" ")
 			}
 		});
 	}
