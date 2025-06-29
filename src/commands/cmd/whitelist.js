@@ -7,7 +7,7 @@ export default {
 		description: 'Adds a user to the whitelist.',
 		usage: 'whitelist (<clear>/<add/remove/check> <ip>)',
 		aliases: [],
-		minRank: RANK.DEVELOPER,
+		minRank: RANK.ADMIN,
 	},
 	async execute(client, args){
 		if(!args.length) return client.sendMessage({

@@ -7,6 +7,7 @@ export default {
 		description: 'Reloads all commands.',
 		usage: 'reloadcommands',
 		aliases: ['rc'],
+		disabled:true,
 		minRank: RANK.ADMIN,
 	}, async execute(client, args){
 		await loadCommands(client.server,client);
