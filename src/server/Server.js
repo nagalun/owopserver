@@ -81,7 +81,7 @@ export class Server {
 					let origin = req.getHeader("origin")
 					//get chat format
 					let format = req.getQuery("chat") == "v2" ? "v2" : "v1";
-					let isBot = req.getHeader("bot-identifier") !== undefined || req.getHeader('isBot') === "true" || false;
+					let isBot = req.getHeader("bot-identifier")?.trim() !== "" || req.getHeader("isBot") === "true";
 					let botIdentifier = req.getHeader("bot-identifier");
 					let botSecret = req.getHeader('bot-secret');
 					//handle abort

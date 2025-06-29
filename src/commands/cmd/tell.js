@@ -55,6 +55,8 @@ export default {
 				nick: client.getNick()
 			}
 		});
+		console.log(target);
+		console.log(target.bot);
 		if(target.bot) return;
 		client.sendMessage({
 			sender: 'server',
