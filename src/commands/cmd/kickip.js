@@ -4,7 +4,7 @@ import { usageString } from "../commandHandler.js";
 export default {
 	data: {
 		name: "kickip",
-		minRank: RANK.NONE,
+		minRank: RANK.MODERATOR,
 		usage: 'kickip <ip>',
 		hidden: false,
 		description: 'Kicks an IP from all connected instances.',
