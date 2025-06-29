@@ -17,7 +17,7 @@ export default {
 				message: usageString(this)
 			}
 		});
-		let target = client.server.ips.map.get(args);
+		let target = client.server.ips.map.get(args[0]);
 		if(!target) return client.sendMessage({
 			sender: 'server',
 			type: 'error',

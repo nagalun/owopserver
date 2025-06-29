@@ -33,7 +33,7 @@ export default {
 					}
 				});
 				let target = await client.server.ips.fetch(args[1]);
-				if(!client.destroyed) return client.sendMessage({
+				if(!client.destroyed) client.sendMessage({
 					sender: 'server',
 					type: 'info',
 					data:{
@@ -51,7 +51,7 @@ export default {
 					}
 				});
 				let target = await client.server.ips.fetch(args[1]);
-				if(!client.destroyed) return client.sendMessage({
+				if(!client.destroyed) client.sendMessage({
 					sender: 'server',
 					type: 'info',
 					data:{
@@ -59,7 +59,7 @@ export default {
 					}
 				});
 				target.setProp("banExpiration", 0);
-				return client.server.adminMessage(`Unbanned IP: ${args[1]}`);
+				return client.server.adminMessage(`DEVUnbanned IP: ${args[1]}`);
 			}
 			case "check":{
 				if(args.length<2) return client.sendMessage({
@@ -85,7 +85,7 @@ export default {
 						sender: 'server',
 						type: 'info',
 						data:{
-							message: `IP ${args[1]} is forever.`
+							message: `IP ${args[1]} is banned forever.`
 						}
 					});
 				}

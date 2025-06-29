@@ -17,14 +17,14 @@ export default {
 			}
 		});
 		let time = parseInt(args[1]);
-		if(!(time>0&&time!==-1)) return client.sendMessage({
+		if (time <= 0 && time !== -1) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {
 				message: usageString(this)
 			}
 		});
-		let target = client.server.ips.map.get(args[0]);
+		let target = await client.server.ips.fetch(args[0]);
 		let expirationTime = time === -1 ? -1 : Date.now() + time * 60000;
 		if(!client.destroyed) client.sendMessage({
 			sender: 'server',

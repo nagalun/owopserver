@@ -16,7 +16,7 @@ export default {
 			}
 		});
 		let time = parseInt(args[1]);
-		if(!(time>0&&time!==-1)) return client.sendMessage({
+		if (time <= 0 && time !== -1) return client.sendMessage({
 			sender: 'server',
 			type: 'error',
 			data: {
