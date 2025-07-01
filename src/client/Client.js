@@ -116,12 +116,25 @@ export class Client {
 		// }
 		// console.log(message);
 		if(this.chatFormat==="v2") this.ws.send(JSON.stringify(message), false);
-		else{
-			if(!!message.data&&!!message.data.message){
-				message = message.data.message;
-				this.ws.send(textEncoder.encode(message).buffer, false);
+		else{ // majestic compatibility mode :D
+			let textToSend = null;
+			if (!message.data) return; // oh no
+			switch (message.sender + "-" + message.type) {
+				case "server-whisperSent":
+					textToSend = `-> You tell ${message.data.targetID}: ${message.data.message}`;
+					break;
+
+				case "player-whisperReceived":
+					textToSend = `-> ${message.data.senderID} tells you: ${message.data.message}`;
+					break;
 			}
-			// send nothing if no message. client will have to do parsing bullshit and guesswork to figure out things like if password was correct or when to update nick.
+
+			if(!textToSend && !!message.data && !!message.data.message){
+				textToSend = message.data.message;
+			}
+
+			if (textToSend) this.ws.send(textEncoder.encode(textToSend).buffer, false);
+			// send nothing if no text was magicked up. client will have to do parsing bullshit and guesswork to figure out things like if password was correct or when to update nick.
 		}
 	}
 
