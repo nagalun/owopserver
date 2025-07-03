@@ -42,9 +42,9 @@ export class World {
 		this.identifiedBots = new Map();
 		this.allowedBots = new Map();
 
-		if(!!data){
+		if (!!data) {
 			data = JSON.parse(data)
-			if(!!data.properties){
+			if (!!data.properties) {
 				for (let key in data.properties) {
 					this[key].value = data.properties[key];
 				}
@@ -54,7 +54,7 @@ export class World {
 					this[key].value = data[key];
 				}
 			}
-			if(!!data.allowedBots) this.allowedBots = new Map(Object.entries(data.allowedBots));
+			if (!!data.allowedBots) this.allowedBots = new Map(Object.entries(data.allowedBots));
 		}
 
 		this.incrementingId = 1
@@ -67,6 +67,8 @@ export class World {
 
 		this.lastHeld = this.server.currentTick
 		this.destroyed = false
+
+		this.initializedAt = Date.now();
 	}
 
 	// i swear im not insane
@@ -142,7 +144,7 @@ export class World {
 		this.server.wsServer.publish(this.wsTopic, arrayBuffer, false)
 	}
 
-	broadcastJSON(message){
+	broadcastJSON(message) {
 		this.server.wsServer.publish(this.jsonTopic, JSON.stringify(message), false);
 		console.log(message);
 	}
@@ -151,25 +153,25 @@ export class World {
 		return this.clients.size >= this.maxPlayers.value
 	}
 
-	authBot(client){
-		if(client.ws.extra.botIdentifier){
-			if(!this.allowedBots.size) return; // undefined worldprop, no need to even check here.
-			if(this.identifiedBots.has(client.ws.extra.botIdentifier)) return;
+	authBot(client) {
+		if (client.ws.extra.botIdentifier) {
+			if (!this.allowedBots.size) return; // undefined worldprop, no need to even check here.
+			if (this.identifiedBots.has(client.ws.extra.botIdentifier)) return;
 			let conflicting = false;
-			for(let cmd of commands.values()){
-				if(cmd.data.name === client.ws.extra.botIdentifier){
+			for (let cmd of commands.values()) {
+				if (cmd.data.name === client.ws.extra.botIdentifier) {
 					conflicting = true;
 					break;
 				}
-				if(cmd.data.aliases){
-					if(cmd.data.aliases.includes(client.ws.extra.botIdentifier)){
+				if (cmd.data.aliases) {
+					if (cmd.data.aliases.includes(client.ws.extra.botIdentifier)) {
 						conflicting = true;
 						break;
 					}
 				}
 			}
-			if(!conflicting){
-				if(!this.allowedBots.has(client.ws.extra.botIdentifier)) return;
+			if (!conflicting) {
+				if (!this.allowedBots.has(client.ws.extra.botIdentifier)) return;
 				this.identifiedBots.set(client.ws.extra.botIdentifier, client);
 			}
 		}
@@ -181,13 +183,26 @@ export class World {
 		client.world = this
 		this.authBot(client);
 		// client.ws.subscribe(this.wsTopic)
-		if(client.chatFormat==="v2") client.ws.subscribe(this.jsonTopic);
+		if (client.chatFormat === "v2") {
+			client.ws.subscribe(this.jsonTopic);
+			//bots subscribing to v2 protocol get to see some extra info
+			if (client.bot) {
+				client.ws.send(JSON.stringify({
+					sender: 'server',
+					type: 'bot-serverinfo',
+					data: {
+						serverInitTimestamp: this.server.initializedAt,
+						worldInitTimestamp: this.initializedAt,
+					}
+				}));
+			}
+		}
 		else client.ws.subscribe(this.wsTopic);
 		client.setUid(id)
 		if (this.motd.value !== null) client.sendMessage({
 			sender: 'server',
 			type: 'raw',
-			data:{
+			data: {
 				message: this.motd.value
 			}
 		})
@@ -198,8 +213,8 @@ export class World {
 			client.sendMessage({
 				sender: 'server',
 				type: 'info',
-				data:{
-					message: "[Server]: This world has a password set. Use '/pass PASSWORD' to unlock drawing."	
+				data: {
+					message: "[Server]: This world has a password set. Use '/pass PASSWORD' to unlock drawing."
 				}
 			})
 			return
@@ -211,7 +226,7 @@ export class World {
 		this.clients.delete(client.uid)
 		this.playerDisconnects.add(client.uid)
 		this.playerUpdates.delete(client)
-		if(this.identifiedBots.has(client.ws.extra.botIdentifier)) this.identifiedBots.delete(client.ws.extra.botIdentifier);
+		if (this.identifiedBots.has(client.ws.extra.botIdentifier)) this.identifiedBots.delete(client.ws.extra.botIdentifier);
 		if (this.clients.size === 0) this.lastHeld = this.server.currentTick
 	}
 
@@ -300,20 +315,20 @@ export class World {
 		this.broadcastBuffer(buffer)
 	}
 
-  kickNonAdmins() {
-    let count = 0
-    for (let client of this.clients.values()) {
-      if (client.rank === 3) continue
-      client.destroy()
-      count++
-    }
-    return count
-  }
+	kickNonAdmins() {
+		let count = 0
+		for (let client of this.clients.values()) {
+			if (client.rank === 3) continue
+			client.destroy()
+			count++
+		}
+		return count
+	}
 
-  demoteAllNormalUsers() {
-    for (let client of this.clients.values()) {
-      if (client.rank !== 1) continue
-      client.setRank(0)
-    }
-  }
+	demoteAllNormalUsers() {
+		for (let client of this.clients.values()) {
+			if (client.rank !== 1) continue
+			client.setRank(0)
+		}
+	}
 }

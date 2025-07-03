@@ -40,6 +40,7 @@ export class Server {
 		this.lockdown = false
 
 		this.destroyed = false
+		this.initializedAt = Date.now();
 	}
 
   async destroy() {
