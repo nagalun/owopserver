@@ -20,7 +20,7 @@ export default {
 			});
 		if(args.length < 2) {
 			let target = client.world.clients.get(parseInt(args[0]));
-			if(target.bot) {
+			if(target?.bot) {
 				return target.sendMessage({
 					sender:'player',
 					type:'whisperReceived',
@@ -61,7 +61,7 @@ export default {
 				nick: client.getNick()
 			}
 		});
-		if(target.bot) return;
+		if(target?.bot) return;
 		client.sendMessage({
 			sender: 'server',
 			type: 'whisperSent',
