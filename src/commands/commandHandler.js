@@ -68,6 +68,7 @@ export async function loadCommands(server, client = null) {
 
 	commands.clear();
 	const commandFiles = await readdir(cmdPath);
+	let cmdLoadOk = [];
 	for (const file of commandFiles) {
 		if (file.endsWith(".js")) {
 			try {
@@ -79,13 +80,14 @@ export async function loadCommands(server, client = null) {
 
 				if (command?.data?.name) {
 					commands.set(command.data.name.toLowerCase(), command);
-					console.log(`Loaded command: ${command.data.name}`);
+					cmdLoadOk.push(command.data.name);
 				}
 			} catch (e) {
 				console.error(`Failed to load command: ${file}: `, e);
 			}
 		}
 	}
+	console.log(`Loaded commands: ${cmdLoadOk.join(', ')}`);
 	if (client) {
 		// assume commands were reloaded, inform client.
 		client.sendMessage({
