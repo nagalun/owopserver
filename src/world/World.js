@@ -146,7 +146,7 @@ export class World {
 
 	broadcastJSON(message) {
 		this.server.wsServer.publish(this.jsonTopic, JSON.stringify(message), false);
-		console.log(message);
+		//console.log(message);
 	}
 
 	isFull() {
