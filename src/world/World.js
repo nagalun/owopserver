@@ -14,8 +14,8 @@ export class World {
 		let nameBuffer = Buffer.from(name)
 		let topicBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
 		let jsonBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
-		topicBuffer[0] = 0x02
-		jsonBuffer[0] = 0x03
+		topicBuffer[0] = 0x03
+		jsonBuffer[0] = 0x04
 		nameBuffer.copy(topicBuffer, 1)
 		nameBuffer.copy(jsonBuffer, 1)
 		this.wsTopic = topicBuffer.buffer
