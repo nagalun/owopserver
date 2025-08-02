@@ -74,4 +74,44 @@ export class ServerWorldManager {
       worldObject.tick(tick)
     }
   }
+
+	updatePrate(oldRate, newRate) {
+		for (let worldObject of this.map.values()) {
+			//ignore promises
+			if (worldObject.constructor !== World) continue
+			worldObject.updatePrate(oldRate, newRate);
+		}
+	}
+
+	validateWorldName(worldName) {
+		// Validate world name - allowed chars are a..z, 0..9, '_' and '.'
+		if (worldName === ".." || worldName === "." || worldName === "") {
+			return false;
+		}
+
+		for (let i = worldName.length; i--;) {
+			let charCode = worldName.charCodeAt(i);
+			if (!((charCode > 96 && charCode < 123) ||
+			     (charCode > 47 && charCode < 58) ||
+			      charCode === 95 || charCode === 46)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	getClient(worldName, pid) {
+		let validwn = this.validateWorldName(worldName);
+
+		let cl = null;
+		if (validwn) {
+			let it = this.map.get(worldName);
+			if (it && it.constructor === World) {
+				cl = it.clients.get(pid);
+			}
+		}
+
+		return { valid: validwn, client: cl };
+	}
 }

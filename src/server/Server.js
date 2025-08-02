@@ -6,9 +6,11 @@ import { StatsTracker } from "../stats/StatsTracker.js"
 import { ServerRegionManager } from "../region/ServerRegionManager.js"
 import { data as miscData, saveAndClose } from "./miscData.js"
 import { handleRequest as handleApiRequest } from "../api/api.js"
+import { handleIapiRequest } from "../api/iapi.js"
 import { getIpFromHeader } from "../util/util.js"
 import { loadCommands, commands } from "../commands/commandHandler.js"
 import { chmod } from 'fs'
+import crypto from 'crypto'
 
 let textEncoder = new TextEncoder()
 let textDecoder = new TextDecoder()
@@ -39,6 +41,19 @@ export class Server {
 		this.whitelistId = miscData.whitelistId
 		this.lockdown = false
 
+		// Donation-related properties
+		// Load donation data from miscData if available, otherwise use defaults
+		const donations = miscData.donations || {};
+		this.donCurUntil = donations.donCurUntil || 0;
+		this.donLastMultiplier = 1.0;
+		this.donLastMemo = donations.donLastMemo || "";
+		this.donAnnounce = donations.donAnnounce !== undefined ? !!donations.donAnnounce : true;
+		this.donMemos = donations.donMemos !== undefined ? !!donations.donMemos : true;
+		this.donationsProcessed = new Set();
+
+		// Geolocation concealment salt
+		this.concealmentSalt = miscData.concealmentSalt || this.generateSalt();
+
 		this.destroyed = false
 		this.initializedAt = Date.now();
 	}
@@ -53,6 +68,18 @@ export class Server {
     await this.worlds.destroy()
     await this.regions.destroy()
     await this.ips.destroy()
+
+    // Save donation data to miscData before shutting down
+    miscData.donations = {
+      donCurUntil: this.donCurUntil,
+      donLastMemo: this.donLastMemo,
+      donAnnounce: this.donAnnounce,
+      donMemos: this.donMemos
+    };
+
+    // Save concealment salt
+    miscData.concealmentSalt = this.concealmentSalt;
+
     await saveAndClose()
   }
 
@@ -85,18 +112,23 @@ export class Server {
 					let isBot = req.getHeader("bot-identifier")?.trim() !== "" || req.getHeader("isBot") === "true";
 					let botIdentifier = req.getHeader("bot-identifier");
 					let botSecret = req.getHeader('bot-secret');
+					//read optional proxy headers (only if proxied)
+					let geoData = process.env.IS_PROXIED === "true" ? {
+						continentCode: req.getHeader("x-continent-code"),
+						countryCode: req.getHeader("x-country-code"),
+						countryIsInEu: req.getHeader("x-country-is-in-eu"),
+						countryName: req.getHeader("x-country-name"),
+						cityName: req.getHeader("x-city-name"),
+						asn: req.getHeader("x-asn"),
+						asnName: req.getHeader("x-asn-name"),
+					} : {};
 					//handle abort
 					let aborted = false
 					res.onAborted(() => {
 						aborted = true
 					})
 					//async get ip data
-					let ip
-					if (process.env.IS_PROXIED === "true") {
-						ip = getIpFromHeader(req.getHeader(process.env.REAL_IP_HEADER))
-					} else {
-						ip = textDecoder.decode(res.getRemoteAddressAsText())
-					}
+					let ip = this.getSocketIp(res, req);
 					ip = await this.ips.fetch(ip)
 					if (aborted) return
 					if (this.destroyed) {
@@ -113,6 +145,7 @@ export class Server {
 									isBot,
 									botSecret,
 									botIdentifier,
+									geoData,
 								},
 							}, secWebSocketKey, secWebSocketProtocol, secWebSocketExtensions, context)
 						})
@@ -198,6 +231,12 @@ export class Server {
 			this.clients.tickExpiration(tick)
 			this.worlds.tickExpiration(tick)
 			this.ips.tickExpiration(tick)
+			// Handle donation multiplier updates
+			let curMult = this.getDonationMultiplier();
+			if (curMult !== this.donLastMultiplier) {
+				this.worlds.updatePrate(this.donLastMultiplier, curMult);
+				this.donLastMultiplier = curMult;
+			}
 		}
 		//every hour
 		if ((tick % 54000) === 0) {
@@ -225,6 +264,121 @@ export class Server {
 
 	broadcastJSON(message){
 		this.wsServer.publish(this.globalV2Topic, JSON.stringify(message), false);
+	}
+
+	// Donation-related methods
+	getDonationUntil() {
+		return this.donCurUntil;
+	}
+
+	setDonationUntil(val) {
+		this.donCurUntil = val;
+	}
+
+	getDonationMultiplier() {
+		let unt = this.getDonationUntil();
+		let now = Date.now();
+		if (unt < now) return 1.0;
+		// 2x base for any donation + 0.1x every 2 hours, capped at 5x
+		let rate = 2.0 + ((unt - now) / 1000 / 60 / 120) * 0.1;
+		return rate > 5.0 ? 5.0 : rate;
+	}
+
+	getSocketIp(res, req) {
+		// Try to get IP from proxy headers first if proxied
+		if (process.env.IS_PROXIED === "true") {
+			return getIpFromHeader(req.getHeader(process.env.REAL_IP_HEADER));
+		}
+		// Fallback to direct IP
+		return textDecoder.decode(res.getRemoteAddressAsText());
+	}
+
+	handleDonation(id, world, client, amount, memo) {
+		// Check for duplicate donation IDs
+		if (this.donationsProcessed.has(id)) {
+			console.warn(`Duplicate donation ID detected: ${id}`);
+			return;
+		}
+
+		this.donationsProcessed.add(id);
+
+		let hour = 1000 * 60 * 60;
+		let duration = hour * amount;
+		let now = Date.now();
+
+		let curUntil = this.getDonationUntil();
+
+		let newUntil = 0;
+		if (curUntil > now) {
+			newUntil = curUntil + duration;
+		} else {
+			newUntil = now + duration;
+		}
+
+		this.setDonationUntil(newUntil);
+
+		// Broadcast donation until to all clients
+		let msg = Buffer.allocUnsafeSlow(9);
+		msg[0] = 0x08; // Assuming DONATION_UNTIL is 0x08 based on the patch
+		msg.writeBigInt64LE(BigInt(newUntil), 1);
+		this.broadcastBuffer(msg);
+
+		let message = "[Server] ";
+		if (client) {
+			message += "User '" + client.getNick() + "', of world '" + world + "'";
+		} else {
+			message += "A User";
+		}
+
+		let trimmedString = amount.toFixed(2);
+		message += " has just donated " + trimmedString + " EUR!";
+
+		if (!this.donMemos) {
+			memo = "";
+		} else {
+			// Memo processing
+			memo = memo.trim();
+
+			if (memo.length > 256) {
+				memo = memo.substring(0, 256);
+			}
+		}
+
+		if (memo.length > 0) {
+			message += " Message: " + memo;
+		}
+
+		this.donLastMemo = memo;
+
+		if (this.donAnnounce) {
+			this.broadcastString(message); // v1 chat clients
+			// v2 chat clients
+			this.broadcastJSON({
+				sender: 'server',
+				type: 'info',
+				data: {
+					action: 'donationRecv',
+					nick: client?.getNick(),
+					world: world,
+					qty: trimmedString,
+					memo: memo,
+					message: message
+				}
+			});
+		} else {
+			console.log(message);
+		}
+	}
+
+	setDonAnnounce(state) {
+		this.donAnnounce = state;
+	}
+
+	setDonMemos(state) {
+		if (!state) {
+			this.donLastMemo = "";
+		}
+		this.donMemos = state;
 	}
 
 	resetWhitelist() {
@@ -264,12 +418,37 @@ export class Server {
 	}
 
 	createApiHandlers(server) {
+		server.any("/iapi", (res, req) => {
+			handleIapiRequest(this, res, req)
+		})
+
+		server.any("/iapi/*", (res, req) => {
+			handleIapiRequest(this, res, req)
+		})
+
 		server.any("/api", (res, req) => {
 			handleApiRequest(this, res, req)
 		})
 		server.any("/api/*", (res, req) => {
 			handleApiRequest(this, res, req)
 		})
+	}
+
+	generateSalt() {
+		return crypto.randomBytes(64).toString('hex');
+	}
+
+	conceal(input) {
+		if (typeof input !== "string" || !input.length) {
+			return "";
+		}
+
+		// Create a SHA-256 hash of the input + salt
+		const hash = crypto.createHash('sha256');
+		hash.update(input + this.concealmentSalt);
+		const fullHash = hash.digest('hex');
+
+		return { short: fullHash.substring(0, 7), full: fullHash };
 	}
 }
 

@@ -331,4 +331,10 @@ export class World {
 			client.setRank(0)
 		}
 	}
+
+	updatePrate(oldRate, newRate) {
+		for (let client of this.clients.values()) {
+			client.setPbucketMult(newRate);
+		}
+	}
 }

@@ -27,6 +27,8 @@ export class Client {
 		this.ip = ws.ip
 		this.chatFormat = ws.format;
 
+		this.geoData = ws.extra.geoData;
+
 		this.ip.addClient(this)
 
 		this.lastUpdate = null
@@ -55,6 +57,11 @@ export class Client {
 		this.updated = false
 		this.mute = false
 		this.stealth = false
+
+		// Donation-related properties
+		this.prate = pquota[0];
+		this.pper = pquota[1];
+		this.pmult = this.server.getDonationMultiplier();
 
 		//action lengths:
 		//1: load
@@ -159,11 +166,19 @@ export class Client {
 	}
 
 	setPquota(amount, seconds) {
-		this.pquota.setParams(amount, seconds)
-		let buffer = Buffer.allocUnsafeSlow(5)
+		// Store original values for donation multiplier calculations
+		this.prate = amount;
+		this.pper = seconds;
+
+		// Apply donation multiplier to the rate before setting params
+		let multAmount = Math.floor(amount * this.pmult);
+		this.pquota.setParams(multAmount, seconds);
+
+		let buffer = Buffer.allocUnsafeSlow(6)
 		buffer[0] = 0x06
-		buffer.writeUint16LE(amount, 1)
+		buffer.writeUint16LE(multAmount, 1)
 		buffer.writeUint16LE(seconds, 3)
+		buffer[5] = Math.min(Math.round(this.pmult * 10.0), 255.0); // pmult_i
 		this.sendBuffer(buffer)
 	}
 
@@ -632,14 +647,11 @@ export class Client {
 				return
 			}
 			//validate world name
-			for (let i = message.length - 2; i--;) {
-				let charCode = message[i]
-				if (!((charCode > 96 && charCode < 123) || (charCode > 47 && charCode < 58) || charCode === 95 || charCode === 46)) {
-					this.destroy()
-					return
-				}
+			let worldName = message.toString("utf8", 0, message.length - 2);
+			if (!this.server.worlds.validateWorldName(worldName)) {
+				this.destroy();
+				return;
 			}
-			let worldName = message.toString("utf8", 0, message.length - 2)
 			this.joiningWorld = true
 			let world = await this.server.worlds.fetch(worldName)
 			if (this.destroyed) return
@@ -730,6 +742,12 @@ export class Client {
 		buffer.writeInt32LE(x >> 4, 1)
 		buffer.writeInt32LE(y >> 4, 5)
 		this.sendBuffer(buffer)
+	}
+
+	setPbucketMult(mult) {
+		this.pmult = mult;
+		// send the quota buffer with updated multiplier
+		this.setPquota(this.prate, this.pper);
 	}
 
 	tick(tick) {
