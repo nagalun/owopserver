@@ -1,5 +1,5 @@
 import { Quota } from "../util/Quota.js"
-import { verifyCaptchaToken } from "../util/util.js"
+import { verifyCaptchaToken, formatDuration } from "../util/util.js"
 import { handleCommand } from "../commands/commandHandler.js"
 
 let textEncoder = new TextEncoder()
@@ -27,11 +27,15 @@ export class Client {
 		this.ip = ws.ip
 		this.chatFormat = ws.format;
 
+		this.geoData = ws.extra.geoData;
+
 		this.ip.addClient(this)
 
 		this.lastUpdate = null
 		this.connectionTick = this.server.currentTick
 		this.rank = 0
+		// this is the rank to apply after the user joined the world, before the protocol state fully initializes...
+		this.preJoinRank = 0
 		this.world = null
 		this.uid = null
 		let pquota = this.server.config.defaultPquota.split(",").map(value => parseInt(value))
@@ -55,6 +59,11 @@ export class Client {
 		this.updated = false
 		this.mute = false
 		this.stealth = false
+
+		// Donation-related properties
+		this.prate = pquota[0];
+		this.pper = pquota[1];
+		this.pmult = this.server.getDonationMultiplier();
 
 		//action lengths:
 		//1: load
@@ -159,20 +168,41 @@ export class Client {
 	}
 
 	setPquota(amount, seconds) {
-		this.pquota.setParams(amount, seconds)
-		let buffer = Buffer.allocUnsafeSlow(5)
+		// Store original values for donation multiplier calculations
+		this.prate = amount;
+		this.pper = seconds;
+
+		// Apply donation multiplier to the rate before setting params
+		let multAmount = Math.floor(amount * this.pmult);
+		this.pquota.setParams(multAmount, seconds);
+
+		let buffer = Buffer.allocUnsafeSlow(6)
 		buffer[0] = 0x06
-		buffer.writeUint16LE(amount, 1)
+		buffer.writeUint16LE(multAmount, 1)
 		buffer.writeUint16LE(seconds, 3)
+		buffer[5] = Math.min(Math.round(this.pmult * 10.0), 255.0); // pmult_i
 		this.sendBuffer(buffer)
 	}
 
+	getRank() {
+		return this.world ? this.rank : this.preJoinRank;
+	}
+
 	setRank(rank) {
+		if (!this.world) {
+			this.preJoinRank = rank;
+			return
+		}
 		if (rank === this.rank) return
 		if (rank === 3) {
 			this.ws.subscribe(this.server.adminTopic)
 		} else if (this.rank === 3 && rank < 3) {
 			this.ws.unsubscribe(this.server.adminTopic)
+		}
+		if (rank >= 2) {
+			this.ws.subscribe(this.world.staffTopic)
+		} else if (this.rank >= 2 && rank < 2) {
+			this.ws.unsubscribe(this.world.staffTopic)
 		}
 		let pquota
 		if (this.world.pquota.value) {
@@ -203,6 +233,8 @@ export class Client {
 		buffer[1] = rank
 		this.sendBuffer(buffer)
 		if (rank === 2) {
+			// TODO: think about removing or repurposing global mods
+			this.server.adminMessage(`DEV${this.uid} (${this.world.name}, ${this.ip.ip}) Got local mod`);
 			this.sendMessage({
 				sender: 'server',
 				type: 'info',
@@ -211,6 +243,7 @@ export class Client {
 				}
 			})
 		} else if (rank === 3) {
+			this.server.adminMessage(`DEV${this.uid} (${this.world.name}, ${this.ip.ip}) Got admin`);
 			this.sendMessage({
 				sender: 'server',
 				type: 'info',
@@ -239,7 +272,7 @@ export class Client {
 					sender: 'server',
 					type: 'error',
 					data:{
-						message: `Remaining time: ${Math.floor((this.ip.banExpiration - Date.now()) / 1000)} seconds`
+						message: `Remaining time: ${formatDuration(this.ip.banExpiration - Date.now())}`
 					}
 				})
 				this.sendMessage({
@@ -254,9 +287,25 @@ export class Client {
 			}
 			this.ip.setProp("banExpiration", 0)
 		}
+
+		// Check for admin password in cookies
+		if (this.ws.extra.adminpass && process.env.ADMINPASS) {
+			if (this.ws.extra.adminpass === process.env.ADMINPASS) {
+				this.setRank(3);
+			} else {
+				this.sendMessage({
+					sender: 'server',
+					data: {
+						action: 'invalidatePassword',
+						passwordType: 'adminlogin'
+					}
+				});
+			}
+		}
+
 		let isWhitelisted = this.ip.isWhitelisted()
-		if (this.server.lockdown && !isWhitelisted) {
-			client.sendMessage({
+		if (this.server.lockdown && !isWhitelisted && this.getRank() < 3) {
+			this.sendMessage({
 				sender: 'server',
 				type: 'error',
 				data:{
@@ -291,7 +340,7 @@ export class Client {
 				requiresVerification = true
 			}
 		}
-		if (requiresVerification) {
+		if (requiresVerification && this.getRank() < 3) {
 			this.setCaptchaState(0x00)
 		} else {
 			this.setCaptchaState(0x03)
@@ -343,6 +392,27 @@ export class Client {
 					return
 				}
 				region.requestChunk(this, (chunkY & 0xf) << 4 | chunkX & 0xf)
+				return
+			}
+			//request region (aka. load chunk 2)
+			case 9: {
+				let regionX = message.readInt32LE(0)
+				if (regionX > maxRegionCoord || regionX < minRegionCoord) {
+					this.destroy()
+					return
+				}
+				let regionY = message.readInt32LE(4)
+				if (regionY > maxRegionCoord || regionY < minRegionCoord) {
+					this.destroy()
+					return
+				}
+				if (message[8] !== 1) {
+					this.destroy()
+					return
+				}
+				let regionId = (regionX + 0x10000) + ((regionY + 0x10000) * 0x20000)
+				let region = this.world.getRegion(regionId)
+				region.requestRegion(this)
 				return
 			}
 			//set pixel
@@ -632,30 +702,82 @@ export class Client {
 				return
 			}
 			//validate world name
-			for (let i = message.length - 2; i--;) {
-				let charCode = message[i]
-				if (!((charCode > 96 && charCode < 123) || (charCode > 47 && charCode < 58) || charCode === 95 || charCode === 46)) {
+			let worldName = message.toString("utf8", 0, message.length - 2);
+			if (!this.server.worlds.validateWorldName(worldName)) {
+				this.destroy();
+				return;
+			}
+			this.joiningWorld = true
+
+			let world = await this.server.worlds.fetch(worldName)
+			if (this.destroyed) return
+			try {
+				// where's raii when you need it
+				world.ref()
+
+				// check if moderator rank should be autogranted
+				if (this.getRank() < 2 && world.modpass.value && this.ws.extra && this.ws.extra.worldpass) {
+					if (this.ws.extra.worldpass === world.modpass.value) {
+						this.setRank(2);
+					} else {
+						this.sendMessage({
+							sender: 'server',
+							data:{
+								action: 'invalidatePassword',
+								passwordType: 'worldpass'
+							}
+						});
+					}
+				}
+
+				if (world.isFull(this.getRank())) {
+					this.sendMessage({
+						sender: 'server',
+						type: 'error',
+						data:{
+							message: "World full, try again later!"
+						}
+					})
 					this.destroy()
 					return
 				}
-			}
-			let worldName = message.toString("utf8", 0, message.length - 2)
-			this.joiningWorld = true
-			let world = await this.server.worlds.fetch(worldName)
-			if (this.destroyed) return
-			if (world.isFull()) {
-				this.sendMessage({
-					sender: 'server',
-					type: 'error',
-					data:{
-						message: "World full, try again later!"
+
+				// check if the client is banned in that world
+				// moderators and admins can join even if banned
+				const banInfo = this.getRank() < 2 ? await world.isBanned(this) : null;
+				if (this.destroyed) return
+				if (banInfo) {
+					const isPermanentBan = banInfo.timestamp === -1;
+					let message = `Your ${banInfo.kind} is banned from this world.`;
+
+					if (!isPermanentBan) {
+						const remainingTimeMs = Math.max(0, banInfo.timestamp - Date.now());
+						const durationString = formatDuration(remainingTimeMs);
+						message += ` You will be unbanned in ${durationString}.`;
 					}
-				})
-				this.destroy()
-				return
+
+					this.sendMessage({
+						sender: 'server',
+						type: 'error',
+						data:{
+							message: message,
+							banInfo: {
+								kind: banInfo.kind,
+								timestamp: banInfo.timestamp,
+								comment: banInfo.comment,
+								isPermanent: isPermanentBan
+							}
+						}
+					})
+					this.destroy()
+					return
+				}
+
+				world.addClient(this)
+				this.joiningWorld = false
+			} finally {
+				world.unref()
 			}
-			world.addClient(this)
-			this.joiningWorld = false
 			return
 		}
 		//expecting captcha
@@ -730,6 +852,12 @@ export class Client {
 		buffer.writeInt32LE(x >> 4, 1)
 		buffer.writeInt32LE(y >> 4, 5)
 		this.sendBuffer(buffer)
+	}
+
+	setPbucketMult(mult) {
+		this.pmult = mult;
+		// send the quota buffer with updated multiplier
+		this.setPquota(this.prate, this.pper);
 	}
 
 	tick(tick) {

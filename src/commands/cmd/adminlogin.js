@@ -22,7 +22,6 @@ export default {
 			});
 			// return client.destroy();
 		}
-		client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got admin`);
 		client.setRank(RANK.ADMIN);
 		client.sendMessage({
 			sender: 'server',

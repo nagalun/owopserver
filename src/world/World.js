@@ -6,20 +6,25 @@ import { commands } from "../commands/commandHandler.js"
 let textEncoder = new TextEncoder()
 
 export class World {
-	constructor(serverWorldManager, name, data) {
+	constructor(serverWorldManager, name, data, metadataClosure = null) {
 		this.serverWorldManager = serverWorldManager
 		this.server = serverWorldManager.server
+		this.metadata = metadataClosure
 
 		this.name = name
 		let nameBuffer = Buffer.from(name)
 		let topicBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
 		let jsonBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
+		let staffBuffer = Buffer.allocUnsafeSlow(nameBuffer.length + 1)
 		topicBuffer[0] = 0x03
 		jsonBuffer[0] = 0x04
+		staffBuffer[0] = 0x05
 		nameBuffer.copy(topicBuffer, 1)
 		nameBuffer.copy(jsonBuffer, 1)
+		nameBuffer.copy(staffBuffer, 1)
 		this.wsTopic = topicBuffer.buffer
 		this.jsonTopic = jsonBuffer.buffer
+		this.staffTopic = staffBuffer.buffer
 
 		this.clients = new Map()
 		this.regions = new Map()
@@ -65,10 +70,73 @@ export class World {
 		this.pixelUpdates = []
 		this.playerDisconnects = new Set()
 
+		this.indirectRefCount = 0
 		this.lastHeld = this.server.currentTick
 		this.destroyed = false
 
 		this.initializedAt = Date.now();
+	}
+
+	ref() {
+		return ++this.indirectRefCount;
+	}
+
+	unref() {
+		return --this.indirectRefCount;
+	}
+
+	async isBanned(client) {
+		const [ipBan, continentBan, countryBan, asnBan] = await Promise.all([
+			this.isBannedByProperty('ip', client.ip.ip),
+			this.isBannedByProperty('continent', client.geoData?.continentCode),
+			this.isBannedByProperty('country', client.geoData?.countryCode),
+			this.isBannedByProperty('asn', client.geoData?.asn)
+		]);
+
+		return ipBan || continentBan || countryBan || asnBan;
+	}
+
+	async isBannedByProperty(propertyType, value) {
+		if (!value) return null;
+
+		const hashedValue = this.server.conceal(value).short;
+		const banKey = `bans${propertyType}$${hashedValue}`;
+
+		try {
+			const banData = await this.metadata.get(banKey);
+
+			if (!banData) return null;
+
+			// Check if ban is infinite (-1) or still valid (timestamp > current time)
+			if (banData.timestamp === -1 || banData.timestamp > Date.now()) {
+				return {kind: propertyType, ...banData};
+			}
+
+			// Remove expired ban
+			this.unbanByProperty(propertyType, hashedValue, "Ban expired")
+			return null;
+		} catch (error) {
+			return null;
+		}
+	}
+
+	// property can be ip, continent, country, asn
+	banByProperty(propertyType, hashValue, timestamp, comment = "", internalReason = null) {
+		if (hashValue === undefined || hashValue === null || hashValue === "") return false;
+		const banData = {
+			timestamp: timestamp,
+			comment: comment,
+			date: Date.now()
+		};
+
+		const banKey = `bans$${propertyType}$${hashValue}`;
+		return this.metadata.set(banKey, banData);
+	}
+
+	unbanByProperty(propertyType, hashValue, internalReason = null) {
+		if (hashValue === undefined || hashValue === null || hashValue === "") return false;
+		const banKey = `bans$${propertyType}$${hashValue}`;
+		return this.metadata.set(banKey, null);
 	}
 
 	// i swear im not insane
@@ -129,6 +197,7 @@ export class World {
 
 	keepAlive(tick) {
 		if (this.clients.size > 0) return true
+		if (this.indirectRefCount > 0) return true
 		if (tick - this.lastHeld < 150) return true
 		return false
 	}
@@ -149,8 +218,13 @@ export class World {
 		//console.log(message);
 	}
 
-	isFull() {
-		return this.clients.size >= this.maxPlayers.value
+	broadcastJSONStaff(message) {
+		this.server.wsServer.publish(this.staffTopic, JSON.stringify(message), false);
+	}
+
+	isFull(rank = 0) {
+		const extraSlots = {'2': 5, '3': 10};
+		return this.clients.size >= this.maxPlayers.value + (extraSlots[rank] || 0);
 	}
 
 	authBot(client) {
@@ -208,8 +282,14 @@ export class World {
 		})
 		client.lastUpdate = this.server.currentTick
 		this.updateAllPlayers = true
+
+		if (client.preJoinRank >= 2) {
+			client.setRank(client.preJoinRank)
+			return
+		}
+
 		if (this.restricted.value) return
-		if (this.pass.value) {
+		if (this.pass.value && client.preJoinRank < 1) {
 			client.sendMessage({
 				sender: 'server',
 				type: 'info',
@@ -329,6 +409,12 @@ export class World {
 		for (let client of this.clients.values()) {
 			if (client.rank !== 1) continue
 			client.setRank(0)
+		}
+	}
+
+	updatePrate(oldRate, newRate) {
+		for (let client of this.clients.values()) {
+			client.setPbucketMult(newRate);
 		}
 	}
 }

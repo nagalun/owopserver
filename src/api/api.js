@@ -41,8 +41,29 @@ async function printStatus(server, res, req) {
   } else {
     ip = textDecoder.decode(res.getRemoteAddressAsText())
   }
+
+    // Extract geoData from headers if proxied
+  let geoData = {}
+  if (process.env.IS_PROXIED === "true") {
+    geoData = {
+      continentCode: req.getHeader("x-continent-code"),
+      countryCode: req.getHeader("x-country-code"),
+      countryIsInEu: req.getHeader("x-country-is-in-eu"),
+      countryName: req.getHeader("x-country-name"),
+      cityName: req.getHeader("x-city-name"),
+      asn: req.getHeader("x-asn"),
+      asnName: req.getHeader("x-asn-name")
+    }
+  }
+
   ip = await server.ips.fetch(ip)
   if (aborted) return
+
+  let otherData = {ip: server.conceal(ip.ip).short};
+  if (geoData.continentCode) otherData.continent = server.conceal(geoData.continentCode).short;
+  if (geoData.countryCode) otherData.country = server.conceal(geoData.countryCode).short;
+  if (geoData.asn) otherData.asn = server.conceal(geoData.asn).short;
+
   let obj = {
     motd: server.config.motd,
     totalConnections: server.stats.totalConnections,
@@ -52,6 +73,7 @@ async function printStatus(server, res, req) {
     users: server.clients.map.size,
     uptime: server.stats.getUptime(),
     yourIp: ip.ip,
+    yourOtherData: otherData,
     yourConns: ip.clients.size,
     banned: ip.banExpiration
   }
