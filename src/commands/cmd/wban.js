@@ -1,4 +1,4 @@
-import { RANK, parseDuration } from "../../util/util.js"
+import { RANK, parseDuration, formatDuration } from "../../util/util.js"
 import { usageString } from "../commandHandler.js";
 
 export default {

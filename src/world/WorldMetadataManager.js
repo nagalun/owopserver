@@ -16,7 +16,6 @@ export class WorldMetadataManager {
   async dbGetter(key) {
     try {
       const result = await this.db.get(key)
-      this.db.del
       return result ? JSON.parse(result) : null
     } catch (error) {
       return null
@@ -65,7 +64,10 @@ export class WorldMetadataManager {
   createWorldMetadataClosure(worldName) {
     return {
       get: (key) => this.dbCache.get(`${worldName}$${key}`),
-      list: (prefix, limit = 50, startKey = null) => this.listKeys(`${worldName}$${prefix}`, limit, `${worldName}$${startKey}`),
+      list: async (prefix, limit = 50, startKey = null) => {
+        return  (await this.listKeys(`${worldName}$${prefix}`, limit, `${worldName}$${startKey}`))
+            .map(el => ({key: el.key.substring(worldName.length + 1), value: el.value}));
+      },
       set: (key, value) => this.dbCache.set(`${worldName}$${key}`, value),
     }
   }

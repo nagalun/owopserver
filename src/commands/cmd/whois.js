@@ -91,7 +91,7 @@ export default {
 				type: 'info',
 				data: {
 					classNameOverride: 'whisper',
-					message: `-> IP Hash: ${client.server.conceal(target.ip.ip)}`
+					message: `-> IP Hash: ${client.server.conceal(target.ip.ip).short}`
 				}
 			});
 
