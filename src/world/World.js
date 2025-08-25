@@ -100,7 +100,7 @@ export class World {
 		if (!value) return null;
 
 		const hashedValue = this.server.conceal(value).short;
-		const banKey = `bans${propertyType}$${hashedValue}`;
+		const banKey = `bans$${propertyType}$${hashedValue}`;
 
 		try {
 			const banData = await this.metadata.get(banKey);
@@ -120,6 +120,48 @@ export class World {
 		}
 	}
 
+	kickByProperty(propertyType, hashValue) {
+		let count = 0;
+		const clientsToKick = [];
+
+		for (let client of this.clients.values()) {
+			let propertyValue = null;
+
+			switch(propertyType) {
+				case 'ip':
+					propertyValue = client.ip.ip;
+					break;
+				case 'continent':
+					propertyValue = client.geoData?.continentCode;
+					break;
+				case 'country':
+					propertyValue = client.geoData?.countryCode;
+					break;
+				case 'asn':
+					propertyValue = client.geoData?.asn;
+					break;
+			}
+
+			if (!propertyValue) {
+				continue;
+			}
+
+			propertyValue = this.server.conceal(propertyValue).short;
+
+			if (hashValue === propertyValue && client.getRank() < 2) {
+				clientsToKick.push(client);
+			}
+		}
+
+		// Kick all matching clients
+		for (let client of clientsToKick) {
+			client.destroy();
+			count++;
+		}
+
+		return count;
+	}
+
 	// property can be ip, continent, country, asn
 	banByProperty(propertyType, hashValue, timestamp, comment = "", internalReason = null) {
 		if (hashValue === undefined || hashValue === null || hashValue === "") return false;
@@ -130,6 +172,7 @@ export class World {
 		};
 
 		const banKey = `bans$${propertyType}$${hashValue}`;
+		this.kickByProperty(propertyType, hashValue);
 		return this.metadata.set(banKey, banData);
 	}
 
