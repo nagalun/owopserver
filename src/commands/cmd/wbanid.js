@@ -4,7 +4,7 @@ import { usageString } from "../commandHandler.js";
 export default {
 	data: {
 		name: "wbanid",
-		minRank: RANK.MOD,
+		minRank: RANK.MODERATOR,
 		usage: 'wbanid [property] <id> [time] [reason]',
 		description: 'Bans a user by ID in the current world. Property can be ip, continent, country, or asn (defaults to ip). Time can be specified with units (e.g. 15m, 4d, 2w) or as minutes without units.'
 	}, async execute(client, args){
@@ -100,7 +100,16 @@ export default {
 
 		let log = `Banned by ${client.getNick()} (${client.uid})`;
 		const concealedValue = client.server.conceal(value).short;
-		client.world.banByProperty(propertyType, concealedValue, expirationTime, comment, log);
+		if (!client.world.banByProperty(propertyType, concealedValue, expirationTime, comment, log)) {
+			client.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data: {
+					message: `Couldn't ban hash!`
+				}
+			});
+			return;
+		}
 
 		client.sendMessage({
 			sender: 'server',

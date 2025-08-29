@@ -4,7 +4,7 @@ import { usageString } from "../commandHandler.js";
 export default {
 	data: {
 		name: "wbanlist",
-		minRank: RANK.MOD,
+		minRank: RANK.MODERATOR,
 		usage: 'wbanlist [property] [startKey]',
 		description: 'Shows the list of bans in the current world.'
 	}, async execute(client, args){

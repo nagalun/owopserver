@@ -4,7 +4,7 @@ import { usageString } from "../commandHandler.js";
 export default {
 	data: {
 		name: "wunban",
-		minRank: RANK.MOD,
+		minRank: RANK.MODERATOR,
 		usage: 'wunban <property> <value> [reason]',
 		description: 'Unbans a user by property in the current world.'
 	}, async execute(client, args){
@@ -34,7 +34,16 @@ export default {
 		let log = `Unbanned by ${client.getNick()} (${client.uid})`;
 		if (reason) log += `, reason: ${reason}`
 
-		await client.world.unbanByProperty(propertyType, value, log);
+		if (!client.world.unbanByProperty(propertyType, value, log)) {
+			client.sendMessage({
+				sender: 'server',
+				type: 'error',
+				data: {
+					message: `Couldn't unban hash. Must be 12 chars long!`
+				}
+			});
+			return;
+		}
 
 		client.sendMessage({
 			sender: 'server',

@@ -164,7 +164,7 @@ export class World {
 
 	// property can be ip, continent, country, asn
 	banByProperty(propertyType, hashValue, timestamp, comment = "", internalReason = null) {
-		if (hashValue === undefined || hashValue === null || hashValue === "") return false;
+		if (hashValue === undefined || hashValue === null || hashValue === "" || hashValue.length !== 12) return false;
 		const banData = {
 			timestamp: timestamp,
 			comment: comment,
@@ -173,13 +173,15 @@ export class World {
 
 		const banKey = `bans$${propertyType}$${hashValue}`;
 		this.kickByProperty(propertyType, hashValue);
-		return this.metadata.set(banKey, banData);
+		this.metadata.set(banKey, banData);
+		return true;
 	}
 
 	unbanByProperty(propertyType, hashValue, internalReason = null) {
-		if (hashValue === undefined || hashValue === null || hashValue === "") return false;
+		if (hashValue === undefined || hashValue === null || hashValue === "" || hashValue.length !== 12) return false;
 		const banKey = `bans$${propertyType}$${hashValue}`;
-		return this.metadata.set(banKey, null);
+		this.metadata.set(banKey, null);
+		return true;
 	}
 
 	// i swear im not insane

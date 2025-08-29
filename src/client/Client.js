@@ -756,6 +756,10 @@ export class Client {
 						message += ` You will be unbanned in ${durationString}.`;
 					}
 
+					if (banInfo.comment) {
+						message += ` Reason: ${banInfo.comment}`;
+					}
+
 					this.sendMessage({
 						sender: 'server',
 						type: 'error',

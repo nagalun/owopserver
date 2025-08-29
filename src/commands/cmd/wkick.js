@@ -4,7 +4,7 @@ import { usageString } from "../commandHandler.js";
 export default {
 	data: {
 		name: "wkick",
-		minRank: RANK.MOD,
+		minRank: RANK.MODERATOR,
 		usage: 'wkick <property> <value>',
 		description: 'Kicks users by property (ip, continent, country, asn) in the current world.'
 	}, async execute(client, args){

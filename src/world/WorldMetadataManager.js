@@ -52,7 +52,9 @@ export class WorldMetadataManager {
 
     try {
       for await (const [key, value] of this.db.iterator(options)) {
-        page.push({key, value});
+        let data = value;
+        try { data = value ? JSON.parse(value) : null; } catch (e) { }
+        page.push({key, value: data});
       }
     } catch (error) {
       console.error("Error listing keys:", error);
