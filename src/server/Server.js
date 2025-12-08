@@ -273,7 +273,8 @@ export class Server {
 	}
 
 	getDonationUntil() {
-		return this.donCurUntil;
+		const now = Date.now();
+		return now > this.donCurUntil ? 0 : this.donCurUntil;
 	}
 
 	setDonationUntil(val) {
@@ -285,7 +286,7 @@ export class Server {
 		let now = Date.now();
 		if (unt < now) return 1.0;
 		// 2x base for any donation + 0.1x every 2 hours, capped at 5x
-		let rate = 2.0 + ((unt - now) / 1000 / 60 / 120) * 0.1;
+		let rate = 2.0 + Math.floor((unt - now) / 1000 / 60 / 120) * 0.1;
 		return rate > 5.0 ? 5.0 : rate;
 	}
 
@@ -324,7 +325,7 @@ export class Server {
 
 		// Broadcast donation until to all clients
 		let msg = Buffer.allocUnsafeSlow(9);
-		msg[0] = 0x08; // DONATION_UNTIL
+		msg[0] = 0x09; // DONATION_UNTIL
 		msg.writeBigInt64LE(BigInt(newUntil), 1);
 		this.broadcastBuffer(msg);
 

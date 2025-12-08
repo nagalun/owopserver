@@ -328,6 +328,14 @@ export class World {
 		client.lastUpdate = this.server.currentTick
 		this.updateAllPlayers = true
 
+		let activeDonTs = this.server.getDonationUntil();
+		if (activeDonTs > 0) {
+			let msg = Buffer.allocUnsafeSlow(9);
+			msg[0] = 0x09; // DONATION_UNTIL
+			msg.writeBigInt64LE(BigInt(activeDonTs), 1);
+			client.sendBuffer(msg);
+		}
+
 		if (client.preJoinRank >= 2) {
 			client.setRank(client.preJoinRank)
 			return
