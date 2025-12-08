@@ -717,9 +717,11 @@ export class Client {
 				world.ref()
 
 				// check if moderator rank should be autogranted
-				if (this.getRank() < 2 && world.modpass.value && this.ws.extra && this.ws.extra.worldpass) {
+				if (this.getRank() < 2 && (world.modpass.value || world.pass.value) && this.ws.extra && this.ws.extra.worldpass) {
 					if (this.ws.extra.worldpass === world.modpass.value) {
 						this.setRank(2);
+					} else if (this.ws.extra.worldpass === world.pass.value) {
+						this.setRank(1);
 					} else {
 						this.sendMessage({
 							sender: 'server',
