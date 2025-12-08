@@ -1,6 +1,7 @@
 import { Level } from "level"
 import { Cache } from "../util/dbCache.js"
 import { World } from "./World.js"
+import { WorldMetadataManager } from "./WorldMetadataManager.js"
 
 export class ServerWorldManager {
   constructor(server) {
@@ -11,6 +12,7 @@ export class ServerWorldManager {
       valueEncoding: "utf8"
     })
     this.dbCache = new Cache(10000, this.dbGetter.bind(this), this.dbSetter.bind(this))
+    this.metadataManager = new WorldMetadataManager(server)
 
     this.destroyed = false
   }
@@ -21,7 +23,7 @@ export class ServerWorldManager {
     promise = new Promise(res => resolve = res)
     this.map.set(world, promise)
     let worldData = await this.dbCache.get(world)
-	let worldObject = new World(this, world, worldData);
+    let worldObject = new World(this, world, worldData, this.metadataManager.createWorldMetadataClosure(world));
     // let worldObject = await World.create(this, world, worldData)
     this.map.set(world, worldObject)
     resolve(worldObject)
@@ -49,6 +51,8 @@ export class ServerWorldManager {
     }
     await this.dbCache.saveAll()
     this.db.close()
+    // Also destroy the metadata manager
+    await this.metadataManager.destroy()
   }
 
   worldDestroyed(worldObject, data) {
@@ -74,4 +78,44 @@ export class ServerWorldManager {
       worldObject.tick(tick)
     }
   }
+
+	updatePrate(oldRate, newRate) {
+		for (let worldObject of this.map.values()) {
+			//ignore promises
+			if (worldObject.constructor !== World) continue
+			worldObject.updatePrate(oldRate, newRate);
+		}
+	}
+
+	validateWorldName(worldName) {
+		// Validate world name - allowed chars are a..z, 0..9, '_' and '.'
+		if (worldName === ".." || worldName === "." || worldName === "") {
+			return false;
+		}
+
+		for (let i = worldName.length; i--;) {
+			let charCode = worldName.charCodeAt(i);
+			if (!((charCode > 96 && charCode < 123) ||
+			     (charCode > 47 && charCode < 58) ||
+			      charCode === 95 || charCode === 46)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	getClientFrom(worldName, pid) {
+		let validwn = this.validateWorldName(worldName);
+
+		let cl = null;
+		if (validwn) {
+			let it = this.map.get(worldName);
+			if (it && it.constructor === World) {
+				cl = it.clients.get(pid);
+			}
+		}
+
+		return { valid: validwn, client: cl };
+	}
 }

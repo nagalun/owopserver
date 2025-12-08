@@ -17,6 +17,8 @@ export class Region {
     this.dbId = `${world.name}-${id}`
     this.loaded = false
     this.beganLoading = false
+    this.isEmpty = null
+    this.latestDataBuffer = null
     this.pixels = null
     this.protection = null
     this.lastHeld = this.server.currentTick
@@ -26,7 +28,7 @@ export class Region {
     this.destroyed = false
   }
 
-  load() {
+  async load() {
     this.loadPromise = this.internalLoad()
   }
 
@@ -35,7 +37,9 @@ export class Region {
     let data = await this.server.regions.getData(this.dbId)
     this.loaded = true
     this.loadPromise = null
+    this.latestDataBuffer = data
     if (!data) {
+      this.isEmpty = true
       let color = this.world.bgcolor.value
       this.pixels = Buffer.alloc(196608, new Uint8Array([color >> 16, (color & 0x00ff00) >> 8, color & 0x0000ff]))
       this.protection = Buffer.alloc(256)
@@ -47,15 +51,39 @@ export class Region {
   destroy() {
     if (this.destroyed) return
     this.destroyed = true
-    if (this.dataModified) {
-      this.server.regions.setData(this.dbId, saveData(this.protection, this.pixels))
-    }
+    this.save()
     this.world.regionDestroyed(this.id)
+  }
+
+  save() {
+    if (this.loaded && this.dataModified) {
+      this.server.regions.setData(this.dbId, this.getFreshDataBuffer())
+      this.dataModified = false
+    }
+  }
+
+  flagDataModified() {
+    this.isEmpty = false
+    this.dataModified = true
+    this.latestDataBuffer = null // allow gc of outdated db buffer
+  }
+
+  updateDataBuffer() {
+    this.latestDataBuffer = saveData(this.protection, this.pixels) // could be in a separate thread?
+    return this.latestDataBuffer
+  }
+
+  getFreshDataBuffer() {
+    // if the region is not loaded we can still return it from db, since it has cache no unnecessary fetches should occur
+    // TODO: should think about the impact of deferred pixel updates and simultaneous region requests (packet ordering)
+    if (!this.loaded) return this.server.regions.getData(this.dbId)
+    if (this.isEmpty === true) return null
+    return this.latestDataBuffer ? this.latestDataBuffer : this.updateDataBuffer();
   }
 
   keepAlive(tick) {
     //always keep this region if it hasn't been loaded yet, otherwise bugs could occur from clients awaiting loading
-    if (!this.loaded) return true
+    if (!this.loaded && this.loadPromise) return true
     //if the region has been modified, keep it around a little longer because it may be modified again
     if (this.dataModified) return tick - this.lastHeld < 450
     //if it hasn't been modified, this might just be a region someone is passing through and won't need again
@@ -126,6 +154,46 @@ export class Region {
     client.ws.send(this.getChunkData(chunkLocation).buffer, true)
   }
 
+  async requestRegion(client) {
+    this.lastHeld = this.server.currentTick
+    // if the region is currently loading, we wait, because there could be deferred actions that modify its data
+    // maybe it doesn't matter if we can guarantee that all updates will be received by the client after sending buf,
+    // but does that happen?
+    //if (this.loadPromise) await this.loadPromise
+    //if (client.destroyed) return
+
+    // if not loaded, it will attach to the cache db promise. it should send the packet before any deferred action is sent
+    let buf = this.getFreshDataBuffer()
+    if (buf && buf.constructor === Promise) {
+      // the load already is ongoing, but it doesn't really matter to have accepted one more
+      if (client.rank < 3 && !client.regionloadquota.canSpend()) {
+        this.server.adminMessage(`DEVKicked ${client.uid} (${client.world.name}, ${client.ip.ip}) for loading too many regions`)
+        this.destroy()
+        return false
+      }
+      buf = await buf
+    }
+    if (client.destroyed) return
+
+    let pkt = null;
+    if (buf) { //region not empty
+      pkt = Buffer.allocUnsafeSlow(1 + buf.length);
+      pkt[0] = 0x0A // LOAD_REGION
+      buf.copy(pkt, 1)
+    } else { //region empty
+      let color = this.world.bgcolor.value
+      pkt = Buffer.allocUnsafeSlow(1 + 4 + 4 + 3);
+      pkt[0] = 0x09 // LOAD_REGION_EMPTY
+      pkt.writeInt32LE(this.x, 1)
+      pkt.writeInt32LE(this.y, 5)
+      pkt[9] = color >> 16
+      pkt[10] = (color & 0x00ff00) >> 8
+      pkt[11] = color & 0x0000ff
+    }
+
+    client.ws.send(pkt.buffer, true)
+  }
+
   setPixel(client, x, y, r, g, b) {
     this.lastHeld = this.server.currentTick
     let chunkId = (y & 0xf0) + (x >> 4)
@@ -138,7 +206,7 @@ export class Region {
     this.pixels[bufferPos] = r
     this.pixels[bufferPos + 1] = g
     this.pixels[bufferPos + 2] = b
-    this.dataModified = true
+    this.flagDataModified()
     let realX = (this.x << 8) + x
     let realY = (this.y << 8) + y
     let buffer = Buffer.allocUnsafe(15)
@@ -153,14 +221,14 @@ export class Region {
 
   pasteChunk(chunkLocation, data) {
     this.lastHeld = this.server.currentTick
-    this.dataModified = true
+    this.flagDataModified()
     data.copy(this.pixels, chunkLocation * 768)
     this.world.broadcastBuffer(this.getChunkData(chunkLocation))
   }
 
   eraseChunk(chunkLocation, r, g, b) {
     this.lastHeld = this.server.currentTick
-    this.dataModified = true
+    this.flagDataModified()
     this.pixels.fill(new Uint8Array([r, g, b]), chunkLocation * 768, chunkLocation * 768 + 768)
     let buffer = Buffer.allocUnsafeSlow(21)
     erasedChunkTemplate.copy(buffer)
@@ -178,7 +246,7 @@ export class Region {
   protectChunk(chunkLocation, isProtected) {
     this.lastHeld = this.server.currentTick
     if (this.protection[chunkLocation] === isProtected) return
-    this.dataModified = true
+    this.flagDataModified()
     this.protection[chunkLocation] = isProtected
     let buffer = Buffer.allocUnsafeSlow(10)
     buffer[0] = 0x07

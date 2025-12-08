@@ -71,7 +71,18 @@ export class Cache {
     this.cache.delete(key)
     if (!valueObject.modified) return
     let value = valueObject.value
-    if (value === undefined || value === null) return
+    //if (value === undefined || value === null) return
+    this.currentlySetting.set(key, value)
+    let promise = this.setter(key, value)
+    promise.then(() => this.currentlySetting.delete(key))
+    return promise
+  }
+
+  saveItem(key, valueObject) {
+    if (!valueObject.modified) return
+    valueObject.modified = false
+    let value = valueObject.value
+    //if (value === undefined || value === null) return
     this.currentlySetting.set(key, value)
     let promise = this.setter(key, value)
     promise.then(() => this.currentlySetting.delete(key))
@@ -82,6 +93,15 @@ export class Cache {
     let promises = []
     for (let [key, value] of this.cache.entries()) {
       promises.push(this.itemExpired(key, value))
+    }
+    return Promise.all(promises)
+  }
+
+  savePredicate(pred) {
+    let promises = []
+    for (let [key, value] of this.cache.entries()) {
+      if (value.modified && pred(key, value))
+        promises.push(this.saveItem(key, value))
     }
     return Promise.all(promises)
   }

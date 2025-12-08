@@ -59,3 +59,87 @@ export function formatPropValue(prop, value) {
 	}
 	return value;
 }
+
+export function formatDuration(milliseconds) {
+	if (milliseconds <= 0) {
+		return "0 seconds";
+	}
+
+	let seconds = Math.ceil(milliseconds / 1000);
+	let minutes = Math.floor(seconds / 60);
+	let hours = Math.floor(seconds / 60 / 60);
+	let days = Math.floor(seconds / 60 / 60 / 24);
+
+	seconds %= 60;
+	minutes %= 60;
+	hours %= 24;
+
+	const parts = [];
+	const getS = num => num !== 1 ? 's' : '';
+
+	if (days > 0) {
+		parts.push(`${days} day${getS(days)}`);
+	}
+
+	if (hours > 0) {
+		parts.push(`${hours} hour${getS(hours)}`);
+	}
+
+	if (minutes > 0) {
+		parts.push(`${minutes} minute${getS(minutes)}`);
+	}
+
+	if (seconds > 0) {
+		parts.push(`${seconds} second${getS(seconds)}`);
+	}
+
+	return parts.join(" ");
+}
+
+export function parseCookies(cookieHeader) {
+	let cookies = {};
+	if (cookieHeader) {
+		cookieHeader.split(';').forEach(cookie => {
+			let [name, value] = cookie.trim().split('=');
+			cookies[name] = value;
+		});
+	}
+	return cookies;
+}
+
+export function parseDuration(duration) {
+	const regex = /^(\d+)([a-zA-Z]*)$/;
+	const match = duration.match(regex);
+
+	if (!match) {
+		throw new Error(`Invalid duration format: ${duration}`);
+	}
+
+	const value = parseInt(match[1]);
+	const unit = (match[2] || 'm').toLowerCase(); // default to minutes
+
+	switch (unit) {
+		case 'm':
+		case 'min':
+		case 'minute':
+			return value;
+		case 'h':
+		case 'hr':
+		case 'hour':
+			return value * 60;
+		case 'd':
+		case 'day':
+			return value * 24 * 60;
+		case 'w':
+		case 'week':
+			return value * 7 * 24 * 60;
+		case 'mo':
+		case 'month':
+			return value * 30 * 24 * 60;
+		case 'y':
+		case 'year':
+			return value * 365 * 24 * 60;
+		default:
+			throw new Error(`Unsupported duration unit: ${unit}`);
+	}
+}

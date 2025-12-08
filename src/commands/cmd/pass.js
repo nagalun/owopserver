@@ -19,7 +19,6 @@ export default {
 		if(client.rank >= 2) return;
 		let pass = args.join(' ');
 		if(pass===client.world.modpass.value){
-			client.server.adminMessage(`DEV${client.uid} (${client.world.name}, ${client.ip.ip}) Got local mod`);
 			client.sendMessage({
 				sender: 'server',
 				data:{
@@ -30,7 +29,10 @@ export default {
 			client.setRank(2);
 			return;
 		}
-		if(client.rank < 1 && pass===client.world.pass.value){
+		if(pass===client.world.pass.value){
+			if (client.rank > 0) {
+				return;
+			}
 			if(client.world.restricted.value){
 				client.sendMessage({
 					sender: 'server',

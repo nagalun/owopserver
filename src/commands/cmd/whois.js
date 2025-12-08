@@ -72,5 +72,41 @@ export default {
 				message: `-> Nick: ${target.getNick()}`
 			}
 		});
+
+		const formatForRank = texts => client.rank >= RANK.ADMIN
+				? `${texts.join(', ')} (${client.server.conceal(texts[0])?.short})`
+				: client.server.conceal(texts[0])?.short;
+
+		const geoProps = [
+			{ name: 'Continent', get(obj) { return [obj.continentCode] }, show(obj) { return !!obj.continentCode } },
+			{ name: 'Country', get(obj) { return [obj.countryCode, obj.countryName, obj.cityName] }, show(obj) { return !!obj.countryCode } },
+			{ name: 'ASN', get(obj) { return [obj.asn, obj.asnName] }, show(obj) { return !!obj.asn } },
+		];
+
+		if (client.rank >= RANK.MODERATOR) {
+			const geoData = target.geoData || {};
+
+			client.sendMessage({
+				sender: 'server',
+				type: 'info',
+				data: {
+					classNameOverride: 'whisper',
+					message: `-> IP Hash: ${client.server.conceal(target.ip.ip).short}`
+				}
+			});
+
+			for (const pr of geoProps) {
+				if (!pr.show(geoData)) continue;
+
+				client.sendMessage({
+					sender: 'server',
+					type: 'info',
+					data: {
+						classNameOverride: 'whisper',
+						message: `-> ${pr.name}: ${formatForRank(pr.get(geoData))}`
+					}
+				});
+			}
+		}
 	}
 }
