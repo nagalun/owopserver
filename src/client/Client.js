@@ -395,26 +395,27 @@ export class Client {
 				return
 			}
 			//request region (aka. load chunk 2)
-			case 9: {
-				let regionX = message.readInt32LE(0)
-				if (regionX > maxRegionCoord || regionX < minRegionCoord) {
-					this.destroy()
-					return
-				}
-				let regionY = message.readInt32LE(4)
-				if (regionY > maxRegionCoord || regionY < minRegionCoord) {
-					this.destroy()
-					return
-				}
-				if (message[8] !== 1) {
-					this.destroy()
-					return
-				}
-				let regionId = (regionX + 0x10000) + ((regionY + 0x10000) * 0x20000)
-				let region = this.world.getRegion(regionId)
-				region.requestRegion(this)
-				return
-			}
+			// not really tested or implemented in client, disable for now
+			// case 9: {
+			// 	let regionX = message.readInt32LE(0)
+			// 	if (regionX > maxRegionCoord || regionX < minRegionCoord) {
+			// 		this.destroy()
+			// 		return
+			// 	}
+			// 	let regionY = message.readInt32LE(4)
+			// 	if (regionY > maxRegionCoord || regionY < minRegionCoord) {
+			// 		this.destroy()
+			// 		return
+			// 	}
+			// 	if (message[8] !== 1) {
+			// 		this.destroy()
+			// 		return
+			// 	}
+			// 	let regionId = (regionX + 0x10000) + ((regionY + 0x10000) * 0x20000)
+			// 	let region = this.world.getRegion(regionId)
+			// 	region.requestRegion(this)
+			// 	return
+			// }
 			//set pixel
 			case 11: {
 				if (this.rank < 1) return
