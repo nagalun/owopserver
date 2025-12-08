@@ -48,6 +48,7 @@ export class WorldMetadataManager {
 
     if (startKey) {
       options.gt = startKey;
+      delete options.gte;
     }
 
     try {
@@ -67,7 +68,7 @@ export class WorldMetadataManager {
     return {
       get: (key) => this.dbCache.get(`${worldName}$${key}`),
       list: async (prefix, limit = 50, startKey = null) => {
-        return  (await this.listKeys(`${worldName}$${prefix}`, limit, `${worldName}$${startKey}`))
+        return  (await this.listKeys(`${worldName}$${prefix}`, limit, startKey !== null ? `${worldName}$${prefix}${startKey}` : null))
             .map(el => ({key: el.key.substring(worldName.length + 1), value: el.value}));
       },
       set: (key, value) => this.dbCache.set(`${worldName}$${key}`, value),

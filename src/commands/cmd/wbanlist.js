@@ -42,9 +42,9 @@ export default {
 
 		client.sendMessage({
 			sender: 'server',
-			type: 'info',
 			data: {
-				action: 'wbanlist',
+				action: 'listview',
+				cmd: 'wbanlist',
 				kind: propertyType,
 				startKey,
 				result: banEntries,
