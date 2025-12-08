@@ -29,7 +29,10 @@ export default {
 			client.setRank(2);
 			return;
 		}
-		if(client.rank < 1 && pass===client.world.pass.value){
+		if(pass===client.world.pass.value){
+			if (client.rank > 0) {
+				return;
+			}
 			if(client.world.restricted.value){
 				client.sendMessage({
 					sender: 'server',
