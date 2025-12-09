@@ -109,7 +109,7 @@ export class World {
 
 			// Check if ban is infinite (-1) or still valid (timestamp > current time)
 			if (banData.timestamp === -1 || banData.timestamp > Date.now()) {
-				return {kind: propertyType, ...banData};
+				return {kind: propertyType, value: hashedValue, ...banData};
 			}
 
 			// Remove expired ban

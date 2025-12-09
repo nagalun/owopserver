@@ -751,7 +751,7 @@ export class Client {
 				if (this.destroyed) return
 				if (banInfo) {
 					const isPermanentBan = banInfo.timestamp === -1;
-					let message = `Your ${banInfo.kind} is banned from this world.`;
+					let message = `Your ${banInfo.kind} (Ban ID: ${banInfo.value}) is banned from this world.`;
 
 					if (!isPermanentBan) {
 						const remainingTimeMs = Math.max(0, banInfo.timestamp - Date.now());
@@ -770,6 +770,7 @@ export class Client {
 							message: message,
 							banInfo: {
 								kind: banInfo.kind,
+								value: banInfo.value,
 								timestamp: banInfo.timestamp,
 								comment: banInfo.comment,
 								isPermanent: isPermanentBan
