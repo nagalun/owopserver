@@ -293,13 +293,13 @@ export class Client {
 			if (this.ws.extra.adminpass === process.env.ADMINPASS) {
 				this.setRank(3);
 			} else {
-				this.sendMessage({
-					sender: 'server',
-					data: {
-						action: 'invalidatePassword',
-						passwordType: 'adminlogin'
-					}
-				});
+				// this.sendMessage({
+				// 	sender: 'server',
+				// 	data: {
+				// 		action: 'invalidatePassword',
+				// 		passwordType: 'adminlogin'
+				// 	}
+				// });
 			}
 		}
 
@@ -723,13 +723,13 @@ export class Client {
 					} else if (this.ws.extra.worldpass === world.pass.value) {
 						this.setRank(1);
 					} else {
-						this.sendMessage({
-							sender: 'server',
-							data:{
-								action: 'invalidatePassword',
-								passwordType: 'worldpass'
-							}
-						});
+						// this.sendMessage({
+						// 	sender: 'server',
+						// 	data:{
+						// 		action: 'invalidatePassword',
+						// 		passwordType: 'worldpass'
+						// 	}
+						// });
 					}
 				}
 
