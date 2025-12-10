@@ -126,6 +126,12 @@ export class Server {
 						asn: req.getHeader("x-asn"),
 						asnName: req.getHeader("x-asn-name"),
 					} : {};
+					let adminPass = null;
+					let worldPass = null;
+					try {
+						if (cookies.adminpass) adminPass = Buffer.from(cookies.adminpass, 'base64').toString();
+						if (cookies.worldpass) worldPass = Buffer.from(cookies.worldpass, 'base64').toString();
+					} catch (e) { }
 					//handle abort
 					let aborted = false
 					res.onAborted(() => {
@@ -150,8 +156,8 @@ export class Server {
 									botSecret,
 									botIdentifier,
 									geoData,
-									worldpass: cookies.worldpass || null,
-									adminpass: cookies.adminpass || null
+									worldpass: worldPass || null,
+									adminpass: adminPass || null
 								},
 							}, secWebSocketKey, secWebSocketProtocol, secWebSocketExtensions, context)
 						})
